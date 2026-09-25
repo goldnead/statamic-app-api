@@ -25,6 +25,8 @@ class Areas
         'teams' => 'Goldnead\Teams\Facades\Teams',
         'access' => 'Goldnead\Entitlements\Facades\Entitlements',
         'checkout' => 'Goldnead\StatamicPayments\Support\Checkout',
+        // Anrede and the display zone came with statamic-payments 1.29.
+        'billing' => 'Goldnead\StatamicPayments\Support\Anrede',
         'tokens' => 'Laravel\Sanctum\PersonalAccessToken',
     ];
 
@@ -35,6 +37,7 @@ class Areas
         'teams' => 'goldnead/statamic-teams',
         'access' => 'goldnead/statamic-entitlements',
         'checkout' => 'goldnead/statamic-payments',
+        'billing' => 'goldnead/statamic-payments',
         'tokens' => 'laravel/sanctum',
     ];
 

@@ -30,12 +30,13 @@
         "statamic/cms": "^6.0"
     },
     "require-dev": {
-        "goldnead/statamic-accounts": "^0.1",
+        "goldnead/statamic-accounts": "^0.2",
         "goldnead/statamic-brand-context": "^1.14",
         "goldnead/statamic-entitlements": "^1.5",
+        "goldnead/statamic-invoices": "^2.5",
         "goldnead/statamic-offers": "^1.13",
-        "goldnead/statamic-payments": "^1.27",
-        "goldnead/statamic-teams": "^0.1",
+        "goldnead/statamic-payments": "^1.29",
+        "goldnead/statamic-teams": "^0.2",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
         "orchestra/testbench": "^10.0 || ^11.0",

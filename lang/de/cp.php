@@ -17,6 +17,7 @@ return [
         'teams' => 'Teams',
         'access' => 'Zugänge und Kontingente',
         'checkout' => 'Kasse und Portal',
+        'billing' => 'Kundenbereich',
         'tokens' => 'Zugangstoken',
     ],
 ];

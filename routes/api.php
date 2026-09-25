@@ -68,6 +68,6 @@ Route::prefix(trim((string) config('app-api.routes.prefix', 'api/app'), '/'))
             Route::match([$endpoint['method']], $endpoint['uri'] === '' ? '/' : $endpoint['uri'], $endpoint['action'])
                 ->name($endpoint['name'])
                 ->middleware($middleware)
-                ->where(['token' => '[A-Za-z0-9|]+', 'payment' => '[0-9]+', 'export' => '[A-Za-z0-9]+']);
+                ->where(['token' => '[A-Za-z0-9|]+', 'payment' => '[0-9]+', 'subscription' => '[0-9]+', 'document' => '[0-9]+', 'export' => '[A-Za-z0-9]+']);
         }
     });

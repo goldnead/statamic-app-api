@@ -32,6 +32,10 @@
             "description": "Needs goldnead/statamic-payments."
         },
         {
+            "name": "billing",
+            "description": "Needs goldnead/statamic-payments."
+        },
+        {
             "name": "tokens",
             "description": "Needs laravel/sanctum."
         }
@@ -3552,6 +3556,1228 @@
                 }
             }
         },
+        "/api/app/billing": {
+            "get": {
+                "operationId": "billing",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Orders (paid) and agreements of the user, and of the current team where the user holds `view billing`, with the portal's texts, the links to the statutory cancellation and withdrawal, and the display time zone and form of address of statamic-payments.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingOverview"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/payments/{payment}": {
+            "get": {
+                "operationId": "billing_payment",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "One order with its lines and documents.",
+                "parameters": [
+                    {
+                        "name": "payment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingPaymentEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/documents": {
+            "get": {
+                "operationId": "billing_documents",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Invoices and credit notes of the visible orders (statamic-invoices), newest first.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingDocumentList"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/documents/{document}": {
+            "get": {
+                "operationId": "billing_document",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "The document as PDF (attachment, not cached).",
+                "parameters": [
+                    {
+                        "name": "document",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The document, as an attachment.",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions": {
+            "get": {
+                "operationId": "billing_subscriptions",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Agreements: status, paid until, next charge, price, rhythm, masked payment method, and which actions are open.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingSubscriptionList"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions/{subscription}": {
+            "get": {
+                "operationId": "billing_subscription",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "One agreement.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingSubscriptionEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions/{subscription}/cancel": {
+            "get": {
+                "operationId": "billing_cancel_preview",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "What the confirmation page shows before the button (§ 312k BGB): contract, price, start, paid until, the effect, the button label.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CancelPreview"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: cancel_elsewhere.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "billing_cancel",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Cancel with effect at the end of the paid period, through statamic-payments: the provider first, then the confirmation mail. Needs `confirmed: true`, no elevated session.",
+                "description": "The button that sends this request carries the label from GET …/cancel (`confirmation.button_label`, „Jetzt kündigen\"). The answer carries the moment of the cancellation and whether the confirmation in Textform went out (`mail_sent`); show both. A second request for an agreement already ended answers the same confirmation with `already: true` and sends no second mail.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "confirmed": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "confirmed"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CancelResult"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: cancel_elsewhere, cancel_busy.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: confirmation_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Error: cancel_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions/{subscription}/pause": {
+            "get": {
+                "operationId": "billing_pause_preview",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Whether and how the agreement can be paused, with the earliest resume date.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PausePreview"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: pause_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "billing_pause",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Pause, optionally until a day (`resume_on`, from tomorrow).",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "resume_on": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingChange"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: pause_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: pause_date_invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Error: pause_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions/{subscription}/resume": {
+            "post": {
+                "operationId": "billing_resume",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "End a pause.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingChange"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: pause_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Error: resume_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions/{subscription}/switch": {
+            "get": {
+                "operationId": "billing_switch_preview",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "The plans this agreement may switch to, with price and when it takes effect.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SwitchPreview"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: switch_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "billing_switch",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Switch to another plan.",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "to": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "to"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingChange"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: switch_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Error: switch_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/billing/subscriptions/{subscription}/payment-method": {
+            "post": {
+                "operationId": "billing_payment_method",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "The provider's page to put a new payment method on file; the provider sends the buyer back to `return_url` (a path on this site).",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "return_url": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentMethodLink"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated, tokens_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden, token_ability_missing, two_factor_setup_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: method_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Error: method_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/app/tokens": {
             "get": {
                 "operationId": "tokens",
@@ -3884,6 +5110,18 @@
                                     "checkout_refused",
                                     "provider_unavailable",
                                     "portal_disabled",
+                                    "confirmation_required",
+                                    "cancel_elsewhere",
+                                    "cancel_busy",
+                                    "cancel_failed",
+                                    "pause_unavailable",
+                                    "pause_date_invalid",
+                                    "pause_failed",
+                                    "resume_failed",
+                                    "switch_unavailable",
+                                    "switch_failed",
+                                    "method_unavailable",
+                                    "method_failed",
                                     "tokens_unsupported",
                                     "tokens_disabled",
                                     "token_ability_missing"
@@ -4796,6 +6034,703 @@
                         "type": "string"
                     },
                     "expires_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "BillingDocument": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "invoice",
+                            "credit_note"
+                        ]
+                    },
+                    "reverses": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "For a credit note: the number of the invoice it reverses."
+                    },
+                    "payment_id": {
+                        "type": "integer"
+                    },
+                    "issued_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "issued_at_display": {
+                        "type": "string"
+                    },
+                    "gross_cent": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string"
+                    },
+                    "download_path": {
+                        "type": "string",
+                        "description": "GET billing/documents/{document}, with the session or token."
+                    }
+                }
+            },
+            "BillingPayment": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "product": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "amount_cent": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "description": "Formatted as statamic-payments shows it (79,00 EUR)."
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "paid_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "ISO 8601 in the display time zone of statamic-payments."
+                    },
+                    "paid_at_display": {
+                        "type": "string"
+                    },
+                    "refunded": {
+                        "type": "boolean"
+                    },
+                    "refunded_cent": {
+                        "type": "integer"
+                    },
+                    "refunded_label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": [
+                            "user",
+                            "team"
+                        ]
+                    },
+                    "team_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "subscription_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BillingDocument"
+                        }
+                    },
+                    "lines": {
+                        "type": "array",
+                        "description": "Only on GET billing/payments/{payment}.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "product": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "quantity": {
+                                    "type": "integer"
+                                },
+                                "amount_cent": {
+                                    "type": "integer"
+                                },
+                                "amount": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "BillingPaymentEnvelope": {
+                "type": "object",
+                "properties": {
+                    "payment": {
+                        "$ref": "#/components/schemas/BillingPayment"
+                    }
+                }
+            },
+            "BillingDocumentList": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BillingDocument"
+                        }
+                    },
+                    "documents_available": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "BillingSubscription": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "product": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "status_label": {
+                        "type": "string"
+                    },
+                    "live": {
+                        "type": "boolean"
+                    },
+                    "running": {
+                        "type": "boolean"
+                    },
+                    "paused": {
+                        "type": "boolean"
+                    },
+                    "amount_cent": {
+                        "type": "integer",
+                        "description": "The next charge, a running coupon included."
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "rhythm": {
+                        "type": "string"
+                    },
+                    "coupon": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "started_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "started_at_display": {
+                        "type": "string"
+                    },
+                    "next_payment_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "next_payment_display": {
+                        "type": "string"
+                    },
+                    "next_payment_label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "paid_until": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "paid_until_display": {
+                        "type": "string"
+                    },
+                    "cancelled_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cancelled_at_display": {
+                        "type": "string"
+                    },
+                    "ended_label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "resumes_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "resumes_at_display": {
+                        "type": "string"
+                    },
+                    "remaining": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "remaining_label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "payment_method": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "label": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "last4": {
+                                        "type": "string"
+                                    },
+                                    "expires_at": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "display": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": [
+                            "user",
+                            "team"
+                        ]
+                    },
+                    "team_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "actions": {
+                        "type": "object",
+                        "properties": {
+                            "cancel": {
+                                "type": "boolean"
+                            },
+                            "cancel_elsewhere_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "pause": {
+                                "type": "boolean"
+                            },
+                            "resume": {
+                                "type": "boolean"
+                            },
+                            "switch": {
+                                "type": "boolean"
+                            },
+                            "change_method": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "method_note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Show under the payment-method button: the verification charge."
+                    }
+                }
+            },
+            "BillingSubscriptionEnvelope": {
+                "type": "object",
+                "properties": {
+                    "subscription": {
+                        "$ref": "#/components/schemas/BillingSubscription"
+                    }
+                }
+            },
+            "BillingSubscriptionList": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BillingSubscription"
+                        }
+                    }
+                }
+            },
+            "BillingOverview": {
+                "type": "object",
+                "properties": {
+                    "payments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BillingPayment"
+                        }
+                    },
+                    "subscriptions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BillingSubscription"
+                        }
+                    },
+                    "team": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "can_view_billing": {
+                                        "type": "boolean"
+                                    },
+                                    "can_manage_billing": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "documents_available": {
+                        "type": "boolean"
+                    },
+                    "links": {
+                        "type": "object",
+                        "properties": {
+                            "cancellation_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "§ 312k BGB: cancelling without login (\"Verträge hier kündigen\")."
+                            },
+                            "withdrawal_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "description": "§ 356a BGB: the withdrawal function."
+                            }
+                        }
+                    },
+                    "display": {
+                        "type": "object",
+                        "properties": {
+                            "timezone": {
+                                "type": "string"
+                            },
+                            "anrede": {
+                                "type": "string",
+                                "enum": [
+                                    "du",
+                                    "sie"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "CancelPreview": {
+                "type": "object",
+                "properties": {
+                    "subscription": {
+                        "$ref": "#/components/schemas/BillingSubscription"
+                    },
+                    "can_cancel": {
+                        "type": "boolean"
+                    },
+                    "confirmation": {
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string"
+                            },
+                            "intro": {
+                                "type": "string"
+                            },
+                            "contract_label": {
+                                "type": "string"
+                            },
+                            "contract": {
+                                "type": "string"
+                            },
+                            "price_label": {
+                                "type": "string"
+                            },
+                            "price": {
+                                "type": "string"
+                            },
+                            "started_label": {
+                                "type": "string"
+                            },
+                            "started_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "started_at_display": {
+                                "type": "string"
+                            },
+                            "paid_until_label": {
+                                "type": "string"
+                            },
+                            "paid_until": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "paid_until_display": {
+                                "type": "string"
+                            },
+                            "effect": {
+                                "type": "string"
+                            },
+                            "button_label": {
+                                "type": "string"
+                            },
+                            "abort_label": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "CancelResult": {
+                "type": "object",
+                "properties": {
+                    "cancelled": {
+                        "type": "boolean"
+                    },
+                    "already": {
+                        "type": "boolean"
+                    },
+                    "moment": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "moment_display": {
+                        "type": "string"
+                    },
+                    "paid_until": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "paid_until_display": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "until_message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mail_sent": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "Null when nothing was sent because the agreement had already ended."
+                    },
+                    "mail_message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "subscription": {
+                        "$ref": "#/components/schemas/BillingSubscription"
+                    }
+                }
+            },
+            "PausePreview": {
+                "type": "object",
+                "properties": {
+                    "subscription": {
+                        "$ref": "#/components/schemas/BillingSubscription"
+                    },
+                    "min_date": {
+                        "type": "string"
+                    },
+                    "texts": {
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string"
+                            },
+                            "intro": {
+                                "type": "string"
+                            },
+                            "effect": {
+                                "type": "string"
+                            },
+                            "date_help": {
+                                "type": "string"
+                            },
+                            "button_label": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "SwitchPreview": {
+                "type": "object",
+                "properties": {
+                    "subscription": {
+                        "$ref": "#/components/schemas/BillingSubscription"
+                    },
+                    "choices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "handle": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "amount_cent": {
+                                    "type": "integer"
+                                },
+                                "amount": {
+                                    "type": "string"
+                                },
+                                "rhythm": {
+                                    "type": "string"
+                                },
+                                "immediate": {
+                                    "type": "boolean"
+                                },
+                                "effect": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "texts": {
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string"
+                            },
+                            "intro": {
+                                "type": "string"
+                            },
+                            "button_label": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "BillingChange": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "subscription": {
+                        "$ref": "#/components/schemas/BillingSubscription"
+                    }
+                }
+            },
+            "PaymentMethodLink": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "verification": {
+                        "type": "string"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "returned_message": {
                         "type": "string"
                     }
                 }

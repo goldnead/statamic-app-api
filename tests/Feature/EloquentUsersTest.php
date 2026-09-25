@@ -6,6 +6,7 @@ use Goldnead\AppApi\Events\TokenCreated;
 use Goldnead\AppApi\Events\TokenRevoked;
 use Goldnead\AppApi\Tests\Fixtures\EloquentUser;
 use Goldnead\AppApi\Tests\TestCase;
+use Goldnead\StatamicPayments\Models\Subscription;
 use Goldnead\Teams\Facades\Teams;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
@@ -130,6 +131,22 @@ class EloquentUsersTest extends TestCase
         Event::assertDispatched(TokenRevoked::class, fn (TokenRevoked $e) => $e->tokenId === $id && $e->by === 'user');
 
         $this->assertNull(PersonalAccessToken::find($id));
+    }
+
+    #[Test]
+    public function billing_with_integer_ids_and_a_read_only_token(): void
+    {
+        $model = $this->eloquentUser();
+        $own = Subscription::query()->forceCreate([
+            'provider' => 'mollie', 'provider_id' => 'sub_e', 'customer_reference' => 'cst_e', 'product' => 'chortarif',
+            'amount_cent' => 900, 'currency' => 'EUR', 'interval' => '1 month', 'status' => 'active',
+            'next_payment_at' => now()->addDays(5), 'email' => 'x@example.com', 'meta' => ['app_api_user_id' => (string) $model->id],
+        ]);
+        $bearer = ['Authorization' => 'Bearer '.$model->createToken('Kauf', ['billing:read'])->plainTextToken];
+
+        $this->getJson('/api/app/billing/subscriptions', $bearer)->assertOk()->assertJsonPath('data.0.id', $own->id);
+        $this->assertError($this->postJson('/api/app/billing/subscriptions/'.$own->id.'/cancel', ['confirmed' => true], $bearer), 403, 'token_ability_missing')
+            ->assertJsonPath('error.details.ability', 'billing:write');
     }
 
     #[Test]

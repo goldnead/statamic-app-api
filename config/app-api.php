@@ -64,6 +64,7 @@ return [
         'teams' => true,
         'access' => true,
         'checkout' => true,
+        'billing' => true,
         'tokens' => false,
     ],
 
@@ -146,6 +147,24 @@ return [
 
     'portal' => [
         'require_verified_email' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customer area in the app (billing)
+    |--------------------------------------------------------------------------
+    |
+    | Orders, invoices, agreements and the cancellation, as the portal of
+    | statamic-payments offers them, for the signed-in user and the current
+    | team (with `view billing`; changes need `manage billing`).
+    |
+    */
+
+    'billing' => [
+        // Where the provider sends the buyer back after putting a new
+        // payment method on file. A path on this site; the client may pass
+        // `return_url` instead. Null: the start page.
+        'return_url' => null,
     ],
 
     /*

@@ -17,6 +17,7 @@ return [
         'teams' => 'Teams',
         'access' => 'Access and quotas',
         'checkout' => 'Checkout and portal',
+        'billing' => 'Customer area',
         'tokens' => 'Access tokens',
     ],
 ];

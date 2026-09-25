@@ -17,6 +17,8 @@ use Goldnead\AppApi\Services\ExportDownloads;
 use Goldnead\AppApi\Services\Tokens;
 use Goldnead\AppApi\Support\Settings;
 use Goldnead\BrandContext\Settings\SettingsRegistry;
+use Goldnead\StatamicPayments\Support\Anrede;
+use Goldnead\StatamicPayments\Support\Subscriptions;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
@@ -95,6 +97,7 @@ class ServiceProvider extends AddonServiceProvider
         $this
             ->bootMiddlewareAliases()
             ->bootRateLimits()
+            ->bootSubscriptionMeta()
             ->bootErrors()
             ->bootApiRoutes()
             ->bootNav()
@@ -142,6 +145,27 @@ class ServiceProvider extends AddonServiceProvider
         RateLimiter::for('app-api-mail', fn (Request $request) => Limit::perMinute(6)->by($by($request, 'mail')));
 
         RateLimiter::for('app-api-checkout', fn (Request $request) => Limit::perMinute(10)->by($by($request, 'checkout')));
+
+        // Changing an agreement (cancel, pause, switch, payment method): the
+        // portal's brake, 10 a minute.
+        RateLimiter::for('app-api-billing', fn (Request $request) => Limit::perMinute(10)->by($by($request, 'billing')));
+
+        return $this;
+    }
+
+    /**
+     * An agreement remembers the app user who bought it, as its first
+     * payment does: `Subscriptions::inheritMeta()` is statamic-payments' own
+     * extension point for that. Without it a renewal would be found by the
+     * confirmed address only.
+     */
+    protected function bootSubscriptionMeta(): self
+    {
+        // Anrede marks statamic-payments 1.29, the version the billing area
+        // needs; `inheritMeta()` is older than that.
+        if (class_exists(Anrede::class)) {
+            Subscriptions::inheritMeta('app_api_user_id');
+        }
 
         return $this;
     }

@@ -43,6 +43,7 @@ abstract class TestCase extends AddonTestCase
         'statamic-entitlements',
         'statamic-payments',
         'statamic-offers',
+        'statamic-invoices',
     ];
 
     protected function getPackageProviders($app): array
@@ -111,6 +112,10 @@ abstract class TestCase extends AddonTestCase
     {
         $this->loadMigrationsFrom(__DIR__.'/../vendor/goldnead/statamic-payments/database/migrations');
         $this->loadMigrationsFrom(__DIR__.'/../vendor/laravel/sanctum/database/migrations');
+
+        if (is_dir(__DIR__.'/../vendor/goldnead/statamic-invoices/database/migrations')) {
+            $this->loadMigrationsFrom(__DIR__.'/../vendor/goldnead/statamic-invoices/database/migrations');
+        }
     }
 
     protected function setUp(): void

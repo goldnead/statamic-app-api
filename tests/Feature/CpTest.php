@@ -37,9 +37,11 @@ class CpTest extends TestCase
                 ->where('canManageTokens', false)
                 ->has('events', 2)
                 ->where('events.0.handle', 'app-api.token.created')
-                ->has('areas', 6)
+                ->has('areas', 7)
                 ->where('areas.1.handle', 'account')
                 ->where('areas.1.active', true)
+                ->where('areas.5.handle', 'billing')
+                ->where('areas.5.active', true)
                 ->etc());
     }
 

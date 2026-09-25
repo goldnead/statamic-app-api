@@ -126,7 +126,9 @@ class OpenApi
         $status = (string) $endpoint['status'];
         $responses = [];
 
-        if ($endpoint['response'] === 'File') {
+        if ($endpoint['response'] === 'Pdf') {
+            $responses[$status] = ['description' => 'The document, as an attachment.', 'content' => ['application/pdf' => ['schema' => ['type' => 'string', 'format' => 'binary']]]];
+        } elseif ($endpoint['response'] === 'File') {
             $responses[$status] = ['description' => 'The file.', 'content' => ['application/octet-stream' => ['schema' => ['type' => 'string', 'format' => 'binary']]]];
         } elseif ($endpoint['response'] === null || (int) $status === 204) {
             $responses[$status] = ['description' => 'Done, no content.'];
@@ -307,6 +309,79 @@ class OpenApi
             'Checkout' => $object(['checkout_url' => $string, 'reused' => $bool, 'payment' => $ref('Payment')], ['checkout_url', 'payment']),
             'CheckoutStatus' => $object(['payment' => $ref('Payment')]),
             'PortalLink' => $object(['url' => $string, 'expires_at' => $string]),
+            'BillingDocument' => $object([
+                'id' => $int, 'number' => $string, 'kind' => ['type' => 'string', 'enum' => ['invoice', 'credit_note']],
+                'reverses' => ['type' => ['string', 'null'], 'description' => 'For a credit note: the number of the invoice it reverses.'],
+                'payment_id' => $int, 'issued_at' => $nullableString, 'issued_at_display' => $string, 'gross_cent' => $int,
+                'currency' => $string, 'amount' => $string, 'download_path' => ['type' => 'string', 'description' => 'GET billing/documents/{document}, with the session or token.'],
+            ]),
+            'BillingPayment' => $object([
+                'id' => $int, 'product' => $string, 'name' => $string, 'amount_cent' => $int, 'currency' => $string,
+                'amount' => ['type' => 'string', 'description' => 'Formatted as statamic-payments shows it (79,00 EUR).'],
+                'status' => $string, 'paid_at' => ['type' => ['string', 'null'], 'description' => 'ISO 8601 in the display time zone of statamic-payments.'],
+                'paid_at_display' => $string, 'refunded' => $bool, 'refunded_cent' => $int, 'refunded_label' => $nullableString,
+                'scope' => ['type' => 'string', 'enum' => ['user', 'team']], 'team_id' => $nullableInt, 'subscription_id' => $nullableInt,
+                'documents' => $list($ref('BillingDocument')),
+                'lines' => ['type' => 'array', 'description' => 'Only on GET billing/payments/{payment}.', 'items' => $object(['product' => $string, 'name' => $string, 'quantity' => $int, 'amount_cent' => $int, 'amount' => $string])],
+            ]),
+            'BillingPaymentEnvelope' => $object(['payment' => $ref('BillingPayment')]),
+            'BillingDocumentList' => $object(['data' => $list($ref('BillingDocument')), 'documents_available' => $bool]),
+            'BillingSubscription' => $object([
+                'id' => $int, 'product' => $string, 'name' => $string, 'status' => $string, 'status_label' => $string,
+                'live' => $bool, 'running' => $bool, 'paused' => $bool, 'amount_cent' => ['type' => 'integer', 'description' => 'The next charge, a running coupon included.'],
+                'currency' => $string, 'amount' => $string, 'interval' => $string, 'rhythm' => $string, 'coupon' => $nullableString,
+                'started_at' => $nullableString, 'started_at_display' => $string,
+                'next_payment_at' => $nullableString, 'next_payment_display' => $string, 'next_payment_label' => $nullableString,
+                'paid_until' => $nullableString, 'paid_until_display' => $string,
+                'cancelled_at' => $nullableString, 'cancelled_at_display' => $string, 'ended_label' => $nullableString,
+                'resumes_at' => $nullableString, 'resumes_at_display' => $string, 'remaining' => $nullableInt, 'remaining_label' => $nullableString,
+                'payment_method' => ['oneOf' => [$object(['label' => $nullableString, 'last4' => $string, 'expires_at' => $nullableString, 'display' => $string]), ['type' => 'null']]],
+                'scope' => ['type' => 'string', 'enum' => ['user', 'team']], 'team_id' => $nullableInt,
+                'actions' => $object([
+                    'cancel' => $bool, 'cancel_elsewhere_url' => $nullableString, 'pause' => $bool, 'resume' => $bool,
+                    'switch' => $bool, 'change_method' => $bool,
+                ]),
+                'method_note' => ['type' => ['string', 'null'], 'description' => 'Show under the payment-method button: the verification charge.'],
+            ]),
+            'BillingSubscriptionEnvelope' => $object(['subscription' => $ref('BillingSubscription')]),
+            'BillingSubscriptionList' => $object(['data' => $list($ref('BillingSubscription'))]),
+            'BillingOverview' => $object([
+                'payments' => $list($ref('BillingPayment')),
+                'subscriptions' => $list($ref('BillingSubscription')),
+                'team' => ['oneOf' => [$object(['id' => $int, 'name' => $string, 'can_view_billing' => $bool, 'can_manage_billing' => $bool]), ['type' => 'null']]],
+                'documents_available' => $bool,
+                'links' => $object([
+                    'cancellation_url' => ['type' => ['string', 'null'], 'description' => '§ 312k BGB: cancelling without login ("Verträge hier kündigen").'],
+                    'withdrawal_url' => ['type' => ['string', 'null'], 'description' => '§ 356a BGB: the withdrawal function.'],
+                ]),
+                'display' => $object(['timezone' => $string, 'anrede' => ['type' => 'string', 'enum' => ['du', 'sie']]]),
+            ]),
+            'CancelPreview' => $object([
+                'subscription' => $ref('BillingSubscription'), 'can_cancel' => $bool,
+                'confirmation' => $object([
+                    'title' => $string, 'intro' => $string, 'contract_label' => $string, 'contract' => $string, 'price_label' => $string,
+                    'price' => $string, 'started_label' => $string, 'started_at' => $nullableString, 'started_at_display' => $string,
+                    'paid_until_label' => $string, 'paid_until' => $nullableString, 'paid_until_display' => $string, 'effect' => $string,
+                    'button_label' => $string, 'abort_label' => $string,
+                ]),
+            ]),
+            'CancelResult' => $object([
+                'cancelled' => $bool, 'already' => $bool, 'moment' => $nullableString, 'moment_display' => $string,
+                'paid_until' => $nullableString, 'paid_until_display' => $string, 'title' => $string, 'message' => $string,
+                'until_message' => $nullableString, 'mail_sent' => ['type' => ['boolean', 'null'], 'description' => 'Null when nothing was sent because the agreement had already ended.'],
+                'mail_message' => $nullableString, 'subscription' => $ref('BillingSubscription'),
+            ]),
+            'PausePreview' => $object([
+                'subscription' => $ref('BillingSubscription'), 'min_date' => $string,
+                'texts' => $object(['title' => $string, 'intro' => $string, 'effect' => $string, 'date_help' => $string, 'button_label' => $string]),
+            ]),
+            'SwitchPreview' => $object([
+                'subscription' => $ref('BillingSubscription'),
+                'choices' => $list($object(['handle' => $string, 'name' => $string, 'amount_cent' => $int, 'amount' => $string, 'rhythm' => $string, 'immediate' => $bool, 'effect' => $string])),
+                'texts' => $object(['title' => $string, 'intro' => $string, 'button_label' => $string]),
+            ]),
+            'BillingChange' => $object(['message' => $string, 'subscription' => $ref('BillingSubscription')]),
+            'PaymentMethodLink' => $object(['url' => $string, 'verification' => $string, 'note' => $string, 'returned_message' => $string]),
             'Token' => $token,
             'TokenList' => $object(['data' => $list($ref('Token'))]),
             'NewToken' => $object(['token' => $ref('Token'), 'plain_text_token' => $string]),

@@ -82,6 +82,20 @@ class ErrorCodes
         'provider_unavailable' => 503,
         'portal_disabled' => 404,
 
+        // Customer area (billing)
+        'confirmation_required' => 422,
+        'cancel_elsewhere' => 409,
+        'cancel_busy' => 409,
+        'cancel_failed' => 503,
+        'pause_unavailable' => 409,
+        'pause_date_invalid' => 422,
+        'pause_failed' => 503,
+        'resume_failed' => 503,
+        'switch_unavailable' => 409,
+        'switch_failed' => 503,
+        'method_unavailable' => 409,
+        'method_failed' => 503,
+
         // Tokens
         'tokens_unsupported' => 409,
         'tokens_disabled' => 401,

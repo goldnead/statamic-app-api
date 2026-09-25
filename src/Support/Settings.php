@@ -55,6 +55,7 @@ class Settings implements ProvidesSettings
                     static::field('checkout.idempotency_seconds', 'integer', ['min' => 1, 'max' => 86400]),
                     static::field('checkout.return_url', 'string', ['nullable' => true, 'max' => 255]),
                     static::field('portal.require_verified_email', 'boolean'),
+                    static::field('billing.return_url', 'string', ['nullable' => true, 'max' => 255]),
                 ],
             ],
             [
