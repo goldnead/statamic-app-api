@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-09-26
 
 ### Added
 
@@ -12,6 +12,10 @@
   - Pause, resume, switch plan and a new payment method (the provider's URL), as the portal offers them.
 - New subscriptions carry `app_api_user_id` from their first payment (`Subscriptions::inheritMeta()`).
 - Setting `billing.return_url`.
+
+### Changed
+
+- Needs statamic-payments 1.29 or later for the customer area (without it the area stays off by itself).
 
 ## 0.1.1 — 2026-09-25
 
