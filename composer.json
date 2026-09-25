@@ -1,0 +1,112 @@
+{
+    "name": "goldnead/statamic-app-api",
+    "description": "A JSON layer for single-page apps on Statamic: session and user through Statamic's own auth, account actions, teams, access and quotas, checkout and customer portal, over Laravel Sanctum. Translation only, no business logic of its own.",
+    "type": "statamic-addon",
+    "license": "proprietary",
+    "keywords": [
+        "statamic",
+        "statamic-addon",
+        "api",
+        "json",
+        "spa",
+        "sanctum",
+        "teams",
+        "checkout"
+    ],
+    "authors": [
+        {
+            "name": "Adrian Goldner",
+            "email": "info@adriangoldner.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/goldnead/statamic-app-api/issues",
+        "source": "https://github.com/goldnead/statamic-app-api"
+    },
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^12.40|^13.0",
+        "laravel/sanctum": "^4.0",
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "goldnead/statamic-accounts": "dev-main",
+        "goldnead/statamic-brand-context": "^1.14",
+        "goldnead/statamic-entitlements": "dev-main as 1.99.0",
+        "goldnead/statamic-offers": "dev-main",
+        "goldnead/statamic-payments": "dev-main as 1.99.0",
+        "goldnead/statamic-teams": "dev-main",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "phpunit/phpunit": "^11.0 || ^12.0"
+    },
+    "suggest": {
+        "goldnead/statamic-accounts": "Account endpoints: address confirmation, change of address, deletion with grace period, personal data export.",
+        "goldnead/statamic-teams": "Team endpoints: list, switch, members, invitations, join codes, roles. The current team is read from a header.",
+        "goldnead/statamic-entitlements": "Access and quota endpoints for the user and the current team, plus the middlewares app-api.entitled (402) and app-api.quota (429).",
+        "goldnead/statamic-payments": "Checkout endpoint that answers with the provider's checkout URL instead of a redirect, and a link into the customer portal.",
+        "goldnead/statamic-offers": "Checkout of offers (bumps, coupons, pricing options, quantity limit) through the same endpoint.",
+        "goldnead/statamic-brand-context": "Makes the runtime switches of this addon editable under Settings, Addon settings.",
+        "goldnead/statamic-automations": "Token created and token revoked become automation triggers.",
+        "goldnead/statamic-webhook-manager": "Token created and token revoked become webhook triggers."
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/goldnead/statamic-accounts"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/goldnead/statamic-teams"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Goldnead\\AppApi\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Goldnead\\AppApi\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "App API",
+            "description": "A JSON layer for single-page apps over Sanctum.",
+            "url": "https://github.com/goldnead/statamic-app-api",
+            "developer": "Adrian Goldner",
+            "developer-url": "https://adriangoldner.dev"
+        },
+        "laravel": {
+            "providers": [
+                "Goldnead\\AppApi\\ServiceProvider"
+            ],
+            "aliases": {
+                "AppApi": "Goldnead\\AppApi\\Facades\\AppApi"
+            }
+        }
+    },
+    "scripts": {
+        "test": [
+            "@php vendor/bin/phpunit"
+        ],
+        "lint": [
+            "@php vendor/bin/pint --test"
+        ],
+        "analyse": [
+            "@php vendor/bin/phpstan analyse"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/installers": true,
+            "php-http/discovery": true,
+            "pixelfear/composer-dist-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
