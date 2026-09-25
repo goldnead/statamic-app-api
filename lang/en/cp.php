@@ -7,6 +7,10 @@ return [
     'permission_tokens' => 'Revoke access tokens',
     'permission_settings' => 'Change App API settings',
     'token_revoked' => 'Token revoked.',
+    'events' => 'Events',
+    'automations' => 'Automations',
+    'webhook_manager' => 'Webhook Manager',
+    'activity' => 'Activity',
     'areas' => [
         'session' => 'Session and user',
         'account' => 'Account',

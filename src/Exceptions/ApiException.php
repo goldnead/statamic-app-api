@@ -44,6 +44,16 @@ class ApiException extends RuntimeException
     }
 
     /**
+     * A 4xx is the client's mistake and already answered; it does not belong
+     * in the error log, where anyone could fill it through the public API.
+     * `true` tells Laravel the report is handled, `false` lets it log a 5xx.
+     */
+    public function report(): bool
+    {
+        return $this->status < 500;
+    }
+
+    /**
      * Renders itself in the one error shape, also on a site's own routes
      * that carry one of this addon's middlewares but not `app-api.json`.
      */

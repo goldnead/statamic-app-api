@@ -37,9 +37,9 @@ const methodColor = { GET: 'sky', POST: 'green', PUT: 'amber', DELETE: 'red' };
 const errorList = computed(() => Object.entries(props.errors).map(([code, status]) => ({ code, status })));
 
 const siblings = computed(() => [
-    { key: 'automations', label: __('Automations'), text: __('Both token events are triggers in the flow builder, group "App API".') },
-    { key: 'webhook_manager', label: __('Webhook Manager'), text: __('Both token events are webhook triggers.') },
-    { key: 'activity', label: __('Activity'), text: __('Both token events are written to the activity log, subject user.') },
+    { key: 'automations', label: __('app-api::cp.automations'), text: __('Both token events are triggers in the flow builder, group "App API".') },
+    { key: 'webhook_manager', label: __('app-api::cp.webhook_manager'), text: __('Both token events are webhook triggers.') },
+    { key: 'activity', label: __('app-api::cp.activity'), text:__('Both token events are written to the activity log, subject user.') },
 ]);
 
 function areaState(area) {
@@ -227,13 +227,13 @@ function revoke() {
                     </Card>
                 </Panel>
 
-                <Panel :heading="__('Events')" :subheading="__('Only what this addon does itself. Team, account and payment events come from their own addons.')">
+                <Panel :heading="__('app-api::cp.events')" :subheading="__('Only what this addon does itself. Team, account and payment events come from their own addons.')">
                     <Card>
                         <Table>
                             <TableColumns>
                                 <TableColumn>{{ __('Event') }}</TableColumn>
                                 <TableColumn>{{ __('Mail') }}</TableColumn>
-                                <TableColumn class="text-end">{{ __('Automations') }}</TableColumn>
+                                <TableColumn class="text-end">{{ __('app-api::cp.automations') }}</TableColumn>
                                 <TableColumn class="text-end">{{ __('Webhooks') }}</TableColumn>
                             </TableColumns>
                             <TableRows>
