@@ -20,7 +20,7 @@ class ResetPasswordController extends CoreResetPasswordController
 {
     public function __construct() {}
 
-    public function resetPassword(Request $request): JsonResponse
+    public function resetWithToken(Request $request): JsonResponse
     {
         $request->validate($this->rules(), $this->validationErrorMessages());
 

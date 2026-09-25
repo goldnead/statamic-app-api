@@ -90,6 +90,10 @@ abstract class TestCase extends AddonTestCase
         $app['config']->set('statamic.users.elevated_sessions_enabled', false);
         $app['config']->set('cache.default', 'array');
 
+        // A Statamic site's auth config: the `statamic` user provider, so the
+        // web guard and the password broker speak to Statamic's users.
+        $app['config']->set('auth.providers.users', ['driver' => 'statamic']);
+
         // Sanctum's SPA mode: requests from this host are stateful.
         $app['config']->set('sanctum.stateful', ['localhost']);
 
