@@ -1,12 +1,12 @@
 <?php
 
 use Goldnead\AppApi\Http\Middleware\PrepareRequest;
+use Goldnead\AppApi\Http\Middleware\RequireElevation;
 use Goldnead\AppApi\Http\Middleware\ResolveTeam;
 use Goldnead\AppApi\Support\Endpoints;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Statamic\Http\Middleware\AuthGuard;
-use Goldnead\AppApi\Http\Middleware\RequireElevation;
 
 /*
  * Every endpoint, built from the one list in Support\Endpoints. The prefix,

@@ -30,9 +30,9 @@ class OpenApi
                 'title' => 'Statamic App API',
                 'version' => '1.0.0',
                 'description' => "JSON for single-page apps on Statamic, over Laravel Sanctum.\n\n"
-                    ."Session: fetch `/sanctum/csrf-cookie` once, then send the `XSRF-TOKEN` cookie back as `X-XSRF-TOKEN` "
+                    .'Session: fetch `/sanctum/csrf-cookie` once, then send the `XSRF-TOKEN` cookie back as `X-XSRF-TOKEN` '
                     ."with every write (axios does this with `withCredentials: true`). Tokens: `Authorization: Bearer <token>`.\n\n"
-                    ."Every error has the shape `{error: {code, message, field?, details?}}`. `code` is stable.",
+                    .'Every error has the shape `{error: {code, message, field?, details?}}`. `code` is stable.',
             ],
             'servers' => [['url' => $serverUrl ?? '/']],
             'tags' => array_map(fn (string $area) => ['name' => $area, 'description' => 'Needs '.Areas::PACKAGES[$area].'.'], Areas::all()),

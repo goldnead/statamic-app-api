@@ -9,6 +9,7 @@ use Goldnead\AppApi\Tests\TestCase;
 use Goldnead\Teams\Facades\Teams;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use PHPUnit\Framework\Attributes\Test;
@@ -158,7 +159,7 @@ class EloquentUsersTest extends TestCase
         $token = $owner->createToken('Notenpult')->accessToken;
 
         $admin = $this->eloquentUser('admin@example.com');
-        \Illuminate\Support\Facades\Gate::before(fn ($user, $ability) => in_array($ability, ['access cp', 'view app api', 'manage app api tokens'], true) ? true : null);
+        Gate::before(fn ($user, $ability) => in_array($ability, ['access cp', 'view app api', 'manage app api tokens'], true) ? true : null);
         $this->actingAs($admin);
 
         $this->get(cp_route('app-api.index'))->assertOk()->assertInertia(fn ($page) => $page

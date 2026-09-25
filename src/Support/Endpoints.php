@@ -16,6 +16,7 @@ use Goldnead\AppApi\Http\Controllers\Session\SessionController;
 use Goldnead\AppApi\Http\Controllers\Session\TwoFactorController;
 use Goldnead\AppApi\Http\Controllers\TeamController;
 use Goldnead\AppApi\Http\Controllers\TokenController;
+use Statamic\Facades\TwoFactor;
 
 /**
  * The one list of endpoints.
@@ -122,7 +123,7 @@ class Endpoints
             null => true,
             'openapi' => (bool) config('app-api.routes.openapi', true),
             'registration' => (bool) config('app-api.auth.registration', true),
-            'two_factor' => class_exists('Statamic\Facades\TwoFactor') && \Statamic\Facades\TwoFactor::enabled(),
+            'two_factor' => class_exists('Statamic\Facades\TwoFactor') && TwoFactor::enabled(),
             'elevation' => (bool) config('statamic.users.elevated_sessions_enabled'),
             default => false,
         };

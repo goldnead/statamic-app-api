@@ -51,16 +51,6 @@
         "goldnead/statamic-automations": "Token created and token revoked become automation triggers.",
         "goldnead/statamic-webhook-manager": "Token created and token revoked become webhook triggers."
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/goldnead/statamic-accounts"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/goldnead/statamic-teams"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "Goldnead\\AppApi\\": "src/"

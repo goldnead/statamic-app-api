@@ -1,5 +1,7 @@
 <?php
 
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+
 return [
 
     /*
@@ -26,7 +28,7 @@ return [
         'prefix' => 'api/app',
         'name' => 'app-api.',
         'middleware' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            EnsureFrontendRequestsAreStateful::class,
         ],
         'guard' => 'sanctum',
 

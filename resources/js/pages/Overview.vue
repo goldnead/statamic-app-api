@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, router } from '@statamic/cms/inertia';
 import {
-    Header, Panel, Card, Badge, Button, Description, Tabs, TabList, TabTrigger, TabContent,
+    Header, CommandPaletteItem, Panel, Card, Badge, Button, Description, Tabs, TabList, TabTrigger, TabContent,
     Table, TableColumns, TableColumn, TableRows, TableRow, TableCell, ConfirmationModal,
 } from '@statamic/cms/ui';
 
@@ -68,9 +68,11 @@ function revoke() {
     <Head :title="__('App API')" />
 
     <div class="max-w-page mx-auto">
-        <Header :title="__('App API')" icon="code">
+        <Header :title="__('App API')" icon="code-block">
             <Button v-if="config.settings_url" :href="config.settings_url" :text="__('Settings')" />
-            <Button :href="openapiCpUrl" target="_blank" :text="__('OpenAPI description')" variant="primary" />
+            <CommandPaletteItem category="Actions" :text="__('OpenAPI description')" icon="code-block" :url="openapiCpUrl" open-new-tab v-slot="{ text, url }">
+                <Button :href="url" target="_blank" :text="text" variant="primary" />
+            </CommandPaletteItem>
         </Header>
 
         <Tabs v-model="tab">
@@ -153,32 +155,32 @@ function revoke() {
                         <dl class="grid gap-x-8 gap-y-4 sm:grid-cols-2">
                             <div>
                                 <dt class="text-sm font-medium">{{ __('Prefix') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.prefix }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.prefix }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('Guard') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.guard }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.guard }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('Middleware') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.middleware.join(', ') || '–' }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.middleware.join(', ') || '–' }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('Requests per minute') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.rate_limit || __('No limit') }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.rate_limit || __('No limit') }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('Team header') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.team_header }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.team_header }}</dd>
                                 <Description :text="config.team_fallback ? __('Without the header: the current team of the user.') : __('Without the header: no team.')" />
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('CSRF cookie') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.csrf_cookie_url || '–' }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.csrf_cookie_url || '–' }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('Sanctum stateful domains') }}</dt>
-                                <dd class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ config.stateful_domains.join(', ') || '–' }}</dd>
+                                <dd class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ config.stateful_domains.join(', ') || '–' }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm font-medium">{{ __('OpenAPI') }}</dt>

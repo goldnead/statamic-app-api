@@ -251,7 +251,7 @@ class TeamController extends Controller
     /** @return array<string, mixed> */
     protected function member(Membership $membership, Team $team): array
     {
-        $user = $membership->user();
+        $user = Users::find($membership->user_id);
 
         return [
             'user' => [

@@ -1,0 +1,4052 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Statamic App API",
+        "version": "1.0.0",
+        "description": "JSON for single-page apps on Statamic, over Laravel Sanctum.\n\nSession: fetch `/sanctum/csrf-cookie` once, then send the `XSRF-TOKEN` cookie back as `X-XSRF-TOKEN` with every write (axios does this with `withCredentials: true`). Tokens: `Authorization: Bearer <token>`.\n\nEvery error has the shape `{error: {code, message, field?, details?}}`. `code` is stable."
+    },
+    "servers": [
+        {
+            "url": "/"
+        }
+    ],
+    "tags": [
+        {
+            "name": "session",
+            "description": "Needs statamic/cms."
+        },
+        {
+            "name": "account",
+            "description": "Needs goldnead/statamic-accounts."
+        },
+        {
+            "name": "teams",
+            "description": "Needs goldnead/statamic-teams."
+        },
+        {
+            "name": "access",
+            "description": "Needs goldnead/statamic-entitlements."
+        },
+        {
+            "name": "checkout",
+            "description": "Needs goldnead/statamic-payments."
+        },
+        {
+            "name": "tokens",
+            "description": "Needs laravel/sanctum."
+        }
+    ],
+    "paths": {
+        "/api/app": {
+            "get": {
+                "operationId": "meta",
+                "tags": [
+                    "session"
+                ],
+                "summary": "What this API offers: active areas, the team header, the CSRF cookie path.",
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Meta"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/openapi.json": {
+            "get": {
+                "operationId": "openapi",
+                "tags": [
+                    "session"
+                ],
+                "summary": "This description, as OpenAPI 3.1.",
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OpenApi"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/login": {
+            "post": {
+                "operationId": "session_login",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Sign in with Statamic's login. Answers `two_factor: true` when a code is needed next.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "remember": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoginResult"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed, invalid_credentials, passkey_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Error: too_many_attempts.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/two-factor": {
+            "post": {
+                "operationId": "session_two_factor",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Second step of a login with two-factor authentication: a code from the app or a recovery code.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string"
+                                    },
+                                    "recovery_code": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Error: too_many_requests.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/passkey/options": {
+            "get": {
+                "operationId": "session_passkey_options",
+                "tags": [
+                    "session"
+                ],
+                "summary": "WebAuthn assertion options for a passkey login.",
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WebAuthnOptions"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/passkey": {
+            "post": {
+                "operationId": "session_passkey",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Sign in with a passkey (the WebAuthn assertion).",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "rawId": {
+                                        "type": "string"
+                                    },
+                                    "response": {
+                                        "type": "object"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id",
+                                    "rawId",
+                                    "response",
+                                    "type"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed, invalid_passkey.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/register": {
+            "post": {
+                "operationId": "session_register",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Create an account through Statamic's registration and sign in. Fields of the user blueprint are accepted as well.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed, registration_refused.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/logout": {
+            "post": {
+                "operationId": "session_logout",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Sign out and end the session.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Done, no content."
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/me": {
+            "get": {
+                "operationId": "me",
+                "tags": [
+                    "session"
+                ],
+                "summary": "The signed-in user.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/password/forgot": {
+            "post": {
+                "operationId": "password_forgot",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Mail a reset link through Statamic's password broker. Always the same answer, whether the address exists or not.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Message"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/password/reset": {
+            "post": {
+                "operationId": "password_reset",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Set a new password with the token from the mail.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "token": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "token",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Message"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed, reset_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/elevation": {
+            "get": {
+                "operationId": "session_elevation",
+                "tags": [
+                    "session"
+                ],
+                "summary": "State of Statamic's elevated session and how this user confirms.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Elevation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "session_elevation_confirm",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Confirm with the password, the mailed code or a passkey assertion. Opens the elevated session.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "verification_code": {
+                                        "type": "string"
+                                    },
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "rawId": {
+                                        "type": "string"
+                                    },
+                                    "response": {
+                                        "type": "object"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Elevation"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/elevation/code": {
+            "post": {
+                "operationId": "session_elevation_code",
+                "tags": [
+                    "session"
+                ],
+                "summary": "Mail a confirmation code (accounts without a password).",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Message"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/session/elevation/passkey-options": {
+            "get": {
+                "operationId": "session_elevation_passkey_options",
+                "tags": [
+                    "session"
+                ],
+                "summary": "WebAuthn assertion options to confirm with a passkey.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WebAuthnOptions"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/account": {
+            "get": {
+                "operationId": "account",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Address confirmation, pending change of address, scheduled deletion and its blockers.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Account"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/account/verification": {
+            "post": {
+                "operationId": "account_verification",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Send the confirmation mail again.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Sent"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: already_verified, verification_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/account/email": {
+            "post": {
+                "operationId": "account_email",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Ask to change the address; the new one confirms by mail.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "elevated"
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Account"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: impersonation_locked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: email_rejected.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "Error: elevation_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "account_email_cancel",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Withdraw a pending change of address.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Account"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: impersonation_locked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/account/deletion": {
+            "post": {
+                "operationId": "account_deletion",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Schedule the deletion of the account after the grace period.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "elevated"
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Account"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: impersonation_locked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: deletion_blocked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "Error: elevation_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "account_deletion_cancel",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Withdraw a scheduled deletion.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Account"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: impersonation_locked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/account/export": {
+            "post": {
+                "operationId": "account_export",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Build the personal data export and answer with a short-lived download link.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "elevated"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Export"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: impersonation_locked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: export_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "Error: elevation_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/account/export/{export}": {
+            "get": {
+                "operationId": "account_export_download",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Download a built export (signed link from POST account/export, same user only).",
+                "parameters": [
+                    {
+                        "name": "export",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The file.",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: invalid_signature.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams": {
+            "get": {
+                "operationId": "teams",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "The user's teams with their role, and which one is current.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamList"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "teams_store",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Create a team; the user becomes its owner and it becomes current.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/current": {
+            "get": {
+                "operationId": "teams_current",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "The team of this request: the one in the team header, else the current one.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: team_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "teams_switch",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Make a team the current one.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "team": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "team"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/join": {
+            "post": {
+                "operationId": "teams_join",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Join a team with its join code.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "code"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: join_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: join_code_invalid.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: already_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/invitations/{token}": {
+            "get": {
+                "operationId": "teams_invitations_show",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "What an invitation is for, before accepting it.",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvitationPreview"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: invitation_not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "410": {
+                        "description": "Error: invitation_expired, invitation_used, invitation_revoked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/invitations/{token}/accept": {
+            "post": {
+                "operationId": "teams_invitations_accept",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Accept an invitation; the team becomes current.",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: invitation_wrong_email.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: invitation_not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "410": {
+                        "description": "Error: invitation_expired, invitation_used, invitation_revoked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: already_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}": {
+            "get": {
+                "operationId": "teams_show",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "One team, with the role and permissions of the user in it.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/members": {
+            "get": {
+                "operationId": "teams_members",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "The members of a team.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MemberList"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/members/{user}/role": {
+            "put": {
+                "operationId": "teams_members_role",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Change the role of a member.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "role": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "role"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MemberEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: unknown_role, last_owner.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/members/{user}": {
+            "delete": {
+                "operationId": "teams_members_remove",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Remove a member.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Done, no content."
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: last_owner.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/leave": {
+            "post": {
+                "operationId": "teams_leave",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Leave a team.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Done, no content."
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: last_owner, personal_team.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/invitations": {
+            "get": {
+                "operationId": "teams_invitations",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Pending invitations of a team.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvitationList"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "teams_invitations_store",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Invite somebody by address; the mail goes out with the link.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvitationEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: already_member, unknown_role, personal_team.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/invitations/{invitation}": {
+            "delete": {
+                "operationId": "teams_invitations_revoke",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Withdraw an invitation.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Done, no content."
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: invitation_not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/teams/{team}/join-code": {
+            "post": {
+                "operationId": "teams_join_code",
+                "tags": [
+                    "teams"
+                ],
+                "summary": "Issue a new join code; the old one stops working.",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JoinCode"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/access": {
+            "get": {
+                "operationId": "access",
+                "tags": [
+                    "access"
+                ],
+                "summary": "Products and quotas of the user, and of the current team.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Access"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/access/products/{product}": {
+            "get": {
+                "operationId": "access_product",
+                "tags": [
+                    "access"
+                ],
+                "summary": "Whether the user (personally or through a team) and the current team may use a product.",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProductAccess"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/access/quotas/{key}": {
+            "get": {
+                "operationId": "access_quota",
+                "tags": [
+                    "access"
+                ],
+                "summary": "One quota: limit, used, remaining, period, for the user and the current team.",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "current",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QuotaAccess"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/checkout": {
+            "post": {
+                "operationId": "checkout",
+                "tags": [
+                    "checkout"
+                ],
+                "summary": "Start a purchase and answer with the provider URL to send the buyer to. The same request twice answers with the same checkout.",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TeamHeader"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "product": {
+                                        "type": "string"
+                                    },
+                                    "offer": {
+                                        "type": "string"
+                                    },
+                                    "for": {
+                                        "type": "string"
+                                    },
+                                    "bumps": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "coupon": {
+                                        "type": "string"
+                                    },
+                                    "pricing_option": {
+                                        "type": "string"
+                                    },
+                                    "amount": {
+                                        "type": "integer"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "confirmed": {
+                                        "type": "boolean"
+                                    },
+                                    "return_url": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "confirmed"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "team"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Checkout"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: not_member, forbidden.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: product_not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: offer_unavailable, sold_out.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed, consent_required, checkout_refused.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Error: provider_unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/checkout/{payment}": {
+            "get": {
+                "operationId": "checkout_show",
+                "tags": [
+                    "checkout"
+                ],
+                "summary": "The state of a checkout this user started (after the return from the provider).",
+                "parameters": [
+                    {
+                        "name": "payment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CheckoutStatus"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/portal": {
+            "post": {
+                "operationId": "portal",
+                "tags": [
+                    "checkout"
+                ],
+                "summary": "A short-lived link into the customer portal of statamic-payments for the confirmed address of the user.",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PortalLink"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Error: email_unverified.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: portal_disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/tokens": {
+            "get": {
+                "operationId": "tokens",
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "The user's personal access tokens (never the secret).",
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenList"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: tokens_unsupported.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "tokens_store",
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "Create a personal access token. The secret is in this answer and nowhere else.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "abilities": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth",
+                    "elevated"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NewToken"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: tokens_unsupported.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error: validation_failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "Error: elevation_required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/app/tokens/{token}": {
+            "delete": {
+                "operationId": "tokens_destroy",
+                "tags": [
+                    "tokens"
+                ],
+                "summary": "Revoke a personal access token.",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "session": []
+                    },
+                    {
+                        "token": []
+                    }
+                ],
+                "x-app-api": [
+                    "auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Done, no content."
+                    },
+                    "401": {
+                        "description": "Error: unauthenticated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Error: not_found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Error: tokens_unsupported.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "session": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "laravel_session"
+            },
+            "token": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        },
+        "parameters": {
+            "TeamHeader": {
+                "name": "X-Team-ID",
+                "in": "header",
+                "required": false,
+                "description": "The team this request is about, by id or uuid. A team the user is not in: 403 not_member.",
+                "schema": {
+                    "type": "string"
+                }
+            }
+        },
+        "schemas": {
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "enum": [
+                                    "unauthenticated",
+                                    "forbidden",
+                                    "not_found",
+                                    "validation_failed",
+                                    "csrf_token_mismatch",
+                                    "too_many_requests",
+                                    "server_error",
+                                    "invalid_signature",
+                                    "request_refused",
+                                    "invalid_credentials",
+                                    "passkey_required",
+                                    "invalid_passkey",
+                                    "too_many_attempts",
+                                    "two_factor_not_started",
+                                    "registration_refused",
+                                    "reset_failed",
+                                    "elevation_required",
+                                    "code_unavailable",
+                                    "already_verified",
+                                    "verification_disabled",
+                                    "email_rejected",
+                                    "impersonation_locked",
+                                    "deletion_blocked",
+                                    "account_refused",
+                                    "export_disabled",
+                                    "email_unverified",
+                                    "not_member",
+                                    "already_member",
+                                    "invitation_not_found",
+                                    "invitation_expired",
+                                    "invitation_used",
+                                    "invitation_revoked",
+                                    "invitation_wrong_email",
+                                    "join_code_invalid",
+                                    "join_disabled",
+                                    "unknown_role",
+                                    "last_owner",
+                                    "personal_team",
+                                    "already_owner",
+                                    "team_mismatch",
+                                    "team_required",
+                                    "read_only",
+                                    "payment_required",
+                                    "quota_exceeded",
+                                    "consent_required",
+                                    "product_not_found",
+                                    "offer_unavailable",
+                                    "sold_out",
+                                    "checkout_refused",
+                                    "provider_unavailable",
+                                    "portal_disabled",
+                                    "tokens_unsupported"
+                                ]
+                            },
+                            "message": {
+                                "type": "string"
+                            },
+                            "field": {
+                                "type": "string"
+                            },
+                            "details": {
+                                "type": "object"
+                            }
+                        },
+                        "required": [
+                            "code",
+                            "message"
+                        ]
+                    }
+                },
+                "required": [
+                    "error"
+                ]
+            },
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "string",
+                            "integer"
+                        ]
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "initials": {
+                        "type": "string"
+                    },
+                    "avatar": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "super": {
+                        "type": "boolean"
+                    },
+                    "email_verified": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "email_verified_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "two_factor_enabled": {
+                        "type": "boolean"
+                    },
+                    "current_team_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "email"
+                ]
+            },
+            "UserEnvelope": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/User"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "user"
+                ]
+            },
+            "LoginResult": {
+                "type": "object",
+                "properties": {
+                    "two_factor": {
+                        "type": "boolean"
+                    },
+                    "user": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/User"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "two_factor",
+                    "user"
+                ]
+            },
+            "Message": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Sent": {
+                "type": "object",
+                "properties": {
+                    "sent": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "Elevation": {
+                "type": "object",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "elevated": {
+                        "type": "boolean"
+                    },
+                    "expires_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "password_confirmation",
+                            "verification_code",
+                            "passkey"
+                        ]
+                    },
+                    "passkey": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "WebAuthnOptions": {
+                "type": "object",
+                "description": "PublicKeyCredentialRequestOptions, as Statamic serialises them."
+            },
+            "Meta": {
+                "type": "object",
+                "properties": {
+                    "areas": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    },
+                    "prefix": {
+                        "type": "string"
+                    },
+                    "team_header": {
+                        "type": "string"
+                    },
+                    "csrf_cookie_url": {
+                        "type": "string"
+                    },
+                    "two_factor": {
+                        "type": "boolean"
+                    },
+                    "elevated_sessions": {
+                        "type": "boolean"
+                    },
+                    "registration": {
+                        "type": "boolean"
+                    },
+                    "openapi_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "OpenApi": {
+                "type": "object"
+            },
+            "Account": {
+                "type": "object",
+                "properties": {
+                    "account": {
+                        "type": "object",
+                        "properties": {
+                            "email": {
+                                "type": "string"
+                            },
+                            "verification": {
+                                "type": "object",
+                                "properties": {
+                                    "enabled": {
+                                        "type": "boolean"
+                                    },
+                                    "verified": {
+                                        "type": "boolean"
+                                    },
+                                    "verified_at": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                }
+                            },
+                            "email_change": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "email": {
+                                                "type": "string"
+                                            },
+                                            "expires_at": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "deletion": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "status": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "pending",
+                                                    "blocked"
+                                                ]
+                                            },
+                                            "due_at": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "deletion_blockers": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "grace_days": {
+                                "type": "integer"
+                            },
+                            "export_enabled": {
+                                "type": "boolean"
+                            },
+                            "impersonated": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                }
+            },
+            "Export": {
+                "type": "object",
+                "properties": {
+                    "download_url": {
+                        "type": "string"
+                    },
+                    "filename": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Team": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "role": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "is_current": {
+                        "type": "boolean"
+                    },
+                    "is_personal": {
+                        "type": "boolean"
+                    },
+                    "read_only": {
+                        "type": "boolean"
+                    },
+                    "join_method": {
+                        "type": "string"
+                    },
+                    "join_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "uuid",
+                    "name",
+                    "role"
+                ]
+            },
+            "TeamEnvelope": {
+                "type": "object",
+                "properties": {
+                    "team": {
+                        "$ref": "#/components/schemas/Team"
+                    }
+                },
+                "required": [
+                    "team"
+                ]
+            },
+            "TeamList": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Team"
+                        }
+                    },
+                    "current_team_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Member": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "string",
+                                    "integer"
+                                ]
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "avatar": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "is_owner": {
+                        "type": "boolean"
+                    },
+                    "meta": {
+                        "type": "object"
+                    },
+                    "joined_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "MemberEnvelope": {
+                "type": "object",
+                "properties": {
+                    "member": {
+                        "$ref": "#/components/schemas/Member"
+                    }
+                }
+            },
+            "MemberList": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Member"
+                        }
+                    }
+                }
+            },
+            "Invitation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "uuid": {
+                        "type": "string"
+                    },
+                    "team_id": {
+                        "type": "integer"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "revoked",
+                            "expired"
+                        ]
+                    },
+                    "expires_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "Only in the answer to the invitation itself."
+                    }
+                }
+            },
+            "InvitationEnvelope": {
+                "type": "object",
+                "properties": {
+                    "invitation": {
+                        "$ref": "#/components/schemas/Invitation"
+                    }
+                }
+            },
+            "InvitationList": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Invitation"
+                        }
+                    }
+                }
+            },
+            "InvitationPreview": {
+                "type": "object",
+                "properties": {
+                    "invitation": {
+                        "type": "object",
+                        "properties": {
+                            "team": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "uuid": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "email": {
+                                "type": "string"
+                            },
+                            "role": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string"
+                            },
+                            "expires_at": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "JoinCode": {
+                "type": "object",
+                "properties": {
+                    "join_code": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Quota": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "usage",
+                            "stock"
+                        ]
+                    },
+                    "limit": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "unlimited": {
+                        "type": "boolean"
+                    },
+                    "used": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "remaining": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "period": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "period_start": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "period_end": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "holder": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "grant",
+                            "fallback",
+                            "none"
+                        ]
+                    },
+                    "product": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "AccessDecision": {
+                "type": "object",
+                "properties": {
+                    "allowed": {
+                        "type": "boolean"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "enum": [
+                            "ENTITLED",
+                            "NOT_ENTITLED"
+                        ]
+                    },
+                    "state": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Access": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "type": "object",
+                        "properties": {
+                            "products": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "quotas": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "$ref": "#/components/schemas/Quota"
+                                }
+                            }
+                        }
+                    },
+                    "team": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "integer"
+                                    },
+                                    "products": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "quotas": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "$ref": "#/components/schemas/Quota"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                }
+            },
+            "ProductAccess": {
+                "type": "object",
+                "properties": {
+                    "product": {
+                        "type": "string"
+                    },
+                    "allowed": {
+                        "type": "boolean"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/AccessDecision"
+                    },
+                    "team": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AccessDecision"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                }
+            },
+            "QuotaAccess": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/Quota"
+                    },
+                    "team": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/Quota"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                }
+            },
+            "Payment": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "initiated",
+                            "open",
+                            "paid",
+                            "failed",
+                            "expired",
+                            "canceled",
+                            "refunded"
+                        ]
+                    },
+                    "paid": {
+                        "type": "boolean"
+                    },
+                    "product": {
+                        "type": "string"
+                    },
+                    "amount_cent": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "team_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "Checkout": {
+                "type": "object",
+                "properties": {
+                    "checkout_url": {
+                        "type": "string"
+                    },
+                    "reused": {
+                        "type": "boolean"
+                    },
+                    "payment": {
+                        "$ref": "#/components/schemas/Payment"
+                    }
+                },
+                "required": [
+                    "checkout_url",
+                    "payment"
+                ]
+            },
+            "CheckoutStatus": {
+                "type": "object",
+                "properties": {
+                    "payment": {
+                        "$ref": "#/components/schemas/Payment"
+                    }
+                }
+            },
+            "PortalLink": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Token": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "abilities": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "last_used_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "expires_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "TokenList": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Token"
+                        }
+                    }
+                }
+            },
+            "NewToken": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "$ref": "#/components/schemas/Token"
+                    },
+                    "plain_text_token": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -39,7 +39,7 @@ class UserResource
             'super' => $user->isSuper(),
             'email_verified' => $verifiedAt === false ? null : $verifiedAt !== null,
             'email_verified_at' => is_string($verifiedAt) && $verifiedAt !== '' ? $verifiedAt : null,
-            'two_factor_enabled' => method_exists($user, 'hasEnabledTwoFactorAuthentication') && $user->hasEnabledTwoFactorAuthentication(),
+            'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
             'current_team_id' => self::currentTeamId($user),
         ];
 

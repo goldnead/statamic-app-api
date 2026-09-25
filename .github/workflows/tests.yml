@@ -1,13 +1,8 @@
-# Drop into an addon at .github/workflows/tests.yml
-#
 # Covers the four things the reference analysis found missing most often:
 #   1. a real matrix across the range composer.json promises
 #   2. the studio's addon-lint as a hard gate
 #   3. Pint as a check, not an auto-commit
 #   4. a rebuild of committed dist/ that fails on drift
-#
-# Trim the jobs that do not apply, but do not silently drop the matrix —
-# a single-combination run makes the composer constraints a claim nobody verified.
 
 name: Tests
 
@@ -16,12 +11,16 @@ on:
     branches: [main]
   pull_request:
 
-# This repository is private. With an empty permission set the job token cannot
-# read the repository, and actions/checkout fails with "Repository not found"
-# on every job — which is how every run since the workflow landed went red
-# before a single test ran. Public siblings get away with `{}`; this one cannot.
 permissions:
   contents: read
+
+# statamic-accounts and statamic-teams (dev dependencies, the siblings the
+# suite runs against) are not on Packagist yet. Each job points Composer at
+# their GitHub repositories before installing; composer.json itself stays
+# free of custom repositories, which a buyer's install could not resolve.
+# Remove the step once both are published.
+env:
+  COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.GITHUB_TOKEN }}"}}'
 
 jobs:
   tests:
@@ -31,9 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3', '8.4']
-        # Statamic 6 requires laravel/framework ^12.40 || ^13.0, so an ^11.0 leg
-        # can never resolve. The studio template still carries it; this matrix
-        # matches what composer.json actually promises.
+        # Statamic 6 requires laravel/framework ^12.40 || ^13.0.
         laravel: ['^12.0', '^13.0']
         stability: [prefer-lowest, prefer-stable]
         exclude:
@@ -50,8 +47,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, intl, fileinfo
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, intl, fileinfo, sqlite3, pdo_sqlite
           coverage: none
+
+      - name: Siblings from GitHub
+        run: |
+          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
+          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
 
       - name: Install dependencies
         run: |
@@ -73,10 +75,13 @@ jobs:
           php-version: '8.3'
           coverage: none
 
+      - run: |
+          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
+          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
+
       - run: composer install --prefer-dist --no-interaction
 
-      # Check, never fix. Auto-committing style fixes onto a contributor's branch
-      # rewrites their work without asking — one reference addon does this; do not copy it.
+      # Check, never fix.
       - run: vendor/bin/pint --test
 
   standards:
@@ -87,9 +92,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: addon
-          # release.versioning reads the repository's tags. actions/checkout
-          # fetches none by default, so without this the rule reports a tagged
-          # release as untagged — the tool erring, not the addon.
+          # release.versioning reads the repository's tags.
           fetch-depth: 0
 
       - uses: actions/checkout@v4
@@ -117,9 +120,13 @@ jobs:
           php-version: '8.3'
           coverage: none
 
+      - run: |
+          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
+          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
+
       - run: composer install --prefer-dist --no-interaction
 
-      - run: ./vendor/bin/phpstan analyse --no-progress
+      - run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
   dist:
     runs-on: ubuntu-latest
@@ -133,6 +140,10 @@ jobs:
           php-version: '8.3'
           coverage: none
 
+      - run: |
+          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
+          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
+
       # `@statamic/cms` is installed from the vendor directory, so Composer has
       # to run before npm.
       - run: composer install --prefer-dist --no-interaction
@@ -145,8 +156,6 @@ jobs:
 
       - run: npm run build
 
-      # The committed bundle is what every installed site loads. A source change
-      # that ships without a rebuild leaves the tests green while users run the
-      # old screen — a failure with no symptom anyone can trace.
+      # The committed bundle is what every installed site loads.
       - name: Fail if dist/ differs from the sources
         run: git diff --exit-code dist

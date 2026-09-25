@@ -186,7 +186,7 @@ class ServiceProvider extends AddonServiceProvider
         Nav::extend(function ($nav) {
             $nav->create(__('app-api::cp.nav'))
                 ->section('Tools')
-                ->icon('code')
+                ->icon('code-block')
                 ->route('app-api.index')
                 ->can('view app api');
         });

@@ -3,12 +3,12 @@
 namespace Goldnead\AppApi\Tests\Feature;
 
 use Goldnead\AppApi\Tests\TestCase;
-use Statamic\Notifications\PasswordReset;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use PHPUnit\Framework\Attributes\Test;
 use Statamic\Contracts\Auth\TwoFactor\TwoFactorAuthenticationProvider;
 use Statamic\Facades\User;
+use Statamic\Notifications\PasswordReset;
 
 /**
  * Login, 2FA, logout, registration and passwords go through Statamic's own
@@ -113,6 +113,19 @@ class SessionTest extends TestCase
     public function the_two_factor_step_without_a_login_before_it_is_refused(): void
     {
         $this->assertError($this->api('POST', 'session/two-factor', ['code' => '123456']), 422, 'two_factor_not_started');
+    }
+
+    #[Test]
+    public function passkey_options_come_from_core_and_an_unknown_passkey_is_422(): void
+    {
+        $this->api('GET', 'session/passkey/options')->assertOk()->assertJsonStructure(['challenge']);
+
+        $this->assertError($this->api('POST', 'session/passkey', [
+            'id' => 'unbekannt', 'rawId' => 'unbekannt', 'type' => 'public-key',
+            'response' => ['clientDataJSON' => 'e30', 'authenticatorData' => 'AA', 'signature' => 'AA'],
+        ]), 422, 'invalid_passkey');
+
+        $this->assertGuest();
     }
 
     #[Test]

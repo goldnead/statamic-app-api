@@ -17,9 +17,14 @@ use PHPUnit\Framework\Attributes\Test;
 class AccountTest extends TestCase
 {
     #[Test]
-    public function the_account_state_needs_a_session(): void
+    public function every_account_endpoint_needs_a_session(): void
     {
-        $this->assertError($this->api('GET', 'account'), 401, 'unauthenticated');
+        foreach ([
+            ['GET', 'account'], ['POST', 'account/verification'], ['POST', 'account/email'], ['DELETE', 'account/email'],
+            ['POST', 'account/deletion'], ['DELETE', 'account/deletion'], ['POST', 'account/export'],
+        ] as [$method, $uri]) {
+            $this->assertError($this->api($method, $uri), 401, 'unauthenticated');
+        }
     }
 
     #[Test]

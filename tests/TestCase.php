@@ -2,12 +2,15 @@
 
 namespace Goldnead\AppApi\Tests;
 
+use Goldnead\Accounts\Support\Schema;
 use Goldnead\AppApi\ServiceProvider;
-use Goldnead\StatamicPayments\Contracts\PaymentGateway;
 use Goldnead\AppApi\Tests\Fakes\FakeGateway;
+use Goldnead\StatamicPayments\Contracts\PaymentGateway;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Testing\TestResponse;
+use Laravel\Sanctum\SanctumServiceProvider;
 use Statamic\Addons\Manifest;
 use Statamic\Contracts\Auth\User as UserContract;
 use Statamic\Facades\User;
@@ -54,7 +57,7 @@ abstract class TestCase extends AddonTestCase
         return [
             \Goldnead\BrandContext\ServiceProvider::class,
             \Goldnead\IdentityContracts\ServiceProvider::class,
-            \Laravel\Sanctum\SanctumServiceProvider::class,
+            SanctumServiceProvider::class,
             ...parent::getPackageProviders($app),
             ...$siblings,
         ];
@@ -116,8 +119,8 @@ abstract class TestCase extends AddonTestCase
         $this->gateway = new FakeGateway;
         $this->app->instance(PaymentGateway::class, $this->gateway);
 
-        if (class_exists(\Goldnead\Accounts\Support\Schema::class)) {
-            \Goldnead\Accounts\Support\Schema::flush();
+        if (class_exists(Schema::class)) {
+            Schema::flush();
         }
     }
 
@@ -178,7 +181,7 @@ abstract class TestCase extends AddonTestCase
      * in a test has to start from fresh guards, or the next request still
      * sees the previous user (or nobody).
      */
-    public function be(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
+    public function be(Authenticatable $user, $guard = null)
     {
         // A new person is a new session: Sanctum's AuthenticateSession would
         // otherwise find the previous person's password hash and sign out.

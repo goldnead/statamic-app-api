@@ -2,15 +2,21 @@
 
 namespace Goldnead\AppApi\Http;
 
+use Goldnead\Accounts\Exceptions\AccountException;
 use Goldnead\AppApi\Exceptions\ApiException;
+use Goldnead\Teams\Exceptions\TeamsException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
+use Statamic\Facades\User;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
@@ -54,12 +60,12 @@ class ErrorRenderer
 
     public const ELEVATION_EXCEPTION = 'Statamic\Exceptions\ElevatedSessionAuthorizationException';
 
-    public function render(Throwable $e, Request $request): JsonResponse|\Symfony\Component\HttpFoundation\Response
+    public function render(Throwable $e, Request $request): JsonResponse|Response
     {
         // A response thrown by core or a sibling. A redirect means "go back
         // to the form", which a JSON client has not got: a refusal. Any
         // other response is already an answer and goes out as it is.
-        if ($e instanceof \Illuminate\Http\Exceptions\HttpResponseException) {
+        if ($e instanceof HttpResponseException) {
             $response = $e->getResponse();
 
             if (! $response->isRedirection()) {
@@ -67,7 +73,7 @@ class ErrorRenderer
             }
 
             $errors = $request->hasSession() ? $request->session()->get('errors') : null;
-            $message = $errors instanceof \Illuminate\Support\ViewErrorBag ? (string) $errors->first() : '';
+            $message = $errors instanceof ViewErrorBag ? (string) $errors->first() : '';
 
             return self::respond(422, 'request_refused', $message !== '' ? $message : $this->message('request_refused'));
         }
@@ -106,12 +112,12 @@ class ErrorRenderer
         }
 
         if (is_a($e, self::TEAMS_EXCEPTION)) {
-            /** @var \Goldnead\Teams\Exceptions\TeamsException $e */
+            /** @var TeamsException $e */
             return [$e->status(), $e->reason, $e->getMessage(), $this->teamsField($e->reason), [], []];
         }
 
         if (is_a($e, self::ACCOUNT_EXCEPTION)) {
-            /** @var \Goldnead\Accounts\Exceptions\AccountException $e */
+            /** @var AccountException $e */
             return match ($e->field) {
                 'impersonation' => [403, 'impersonation_locked', $e->getMessage(), null, [], []],
                 'email' => [422, 'email_rejected', $e->getMessage(), 'email', [], []],
@@ -199,7 +205,7 @@ class ErrorRenderer
      */
     protected function elevationDetails(): array
     {
-        $user = \Statamic\Facades\User::current();
+        $user = User::current();
         $prefix = trim((string) config('app-api.routes.prefix', 'api/app'), '/');
 
         return array_filter([

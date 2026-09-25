@@ -1,0 +1,29 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+
+    # A project-local cache. PHPStan's default temp directory is shared across
+    # every project on the machine.
+    tmpDir: .phpstan
+
+    paths:
+        - src
+        - config
+        - routes
+
+    treatPhpDocTypesAsCertain: false
+
+    # Corrects a wrong annotation in Statamic itself, see the stub for why.
+    stubFiles:
+        - phpstan/AddonServiceProvider.stub
+        - phpstan/StatamicUser.stub
+
+    # Automations, webhook-manager and activity are `suggest`: the bridges
+    # name their classes. Scanned from the test stand-ins, which carry the
+    # same declarations. Scanned, not analysed.
+    scanFiles:
+        - tests/Fakes/webhook-manager.php
+        - tests/Fakes/automations.php
+        - tests/Fakes/activity.php

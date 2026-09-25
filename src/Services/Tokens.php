@@ -6,6 +6,7 @@ use Goldnead\AppApi\Events\TokenCreated;
 use Goldnead\AppApi\Events\TokenRevoked;
 use Goldnead\AppApi\Exceptions\ApiException;
 use Goldnead\AppApi\Support\Users;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -91,7 +92,7 @@ class Tokens
 
     public function delete(PersonalAccessToken $token, string $by, ?string $actorId = null): void
     {
-        $owner = Users::of($token->tokenable instanceof \Illuminate\Contracts\Auth\Authenticatable ? $token->tokenable : null);
+        $owner = Users::of($token->tokenable instanceof Authenticatable ? $token->tokenable : null);
         $name = (string) $token->name;
         $id = (int) $token->getKey();
 
@@ -130,9 +131,9 @@ class Tokens
             'id' => (int) $token->getKey(),
             'name' => (string) $token->name,
             'abilities' => (array) $token->abilities,
-            'last_used_at' => $token->last_used_at?->toIso8601String(),
-            'expires_at' => $token->expires_at?->toIso8601String(),
-            'created_at' => $token->created_at?->toIso8601String(),
+            'last_used_at' => $token->last_used_at?->format(DATE_ATOM),
+            'expires_at' => $token->expires_at?->format(DATE_ATOM),
+            'created_at' => $token->created_at?->format(DATE_ATOM),
         ];
     }
 

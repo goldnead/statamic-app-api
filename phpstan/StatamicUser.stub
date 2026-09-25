@@ -1,0 +1,52 @@
+<?php
+
+namespace Statamic\Auth;
+
+/**
+ * The abstract base of Statamic's two user classes (`File\User`,
+ * `Eloquent\User`) does not declare the accessors both of them implement.
+ * Every user the repositories hand out is one of the two, so the methods are
+ * there at runtime; this stub says so for the analyser instead of silencing
+ * each call.
+ *
+ * @method mixed id(mixed $id = null)
+ * @method mixed email(mixed $email = null)
+ * @method mixed password(mixed $password = null)
+ * @method \Illuminate\Support\Collection<int|string, mixed> roles()
+ * @method mixed groups(mixed $groups = null)
+ * @method \DateTimeInterface|null lastLogin()
+ * @method string|null avatar(int $size = 64)
+ */
+abstract class User {}
+
+namespace Laravel\Sanctum;
+
+/**
+ * Sanctum's token model declares its columns only in its migration, which
+ * the analyser does not read.
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $token
+ * @property array<int, string>|null $abilities
+ * @property string $tokenable_type
+ * @property int|string $tokenable_id
+ * @property \DateTimeInterface|null $last_used_at
+ * @property \DateTimeInterface|null $expires_at
+ * @property \DateTimeInterface|null $created_at
+ * @property-read \Illuminate\Database\Eloquent\Model|null $tokenable
+ */
+class PersonalAccessToken extends \Illuminate\Database\Eloquent\Model {}
+
+namespace Statamic\Contracts\Query;
+
+/**
+ * The query builder contract Statamic's facades return is empty; every
+ * implementation extends `Statamic\Query\Builder`.
+ *
+ * @method static orderBy(string $column, string $direction = 'asc')
+ * @method static limit(int $value)
+ * @method int count()
+ * @method \Illuminate\Support\Collection<int|string, mixed> get(array<int, string> $columns = ['*'])
+ */
+interface Builder {}

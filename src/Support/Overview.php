@@ -7,6 +7,7 @@ use Goldnead\AppApi\Integrations\ActivityRecorder;
 use Goldnead\AppApi\Integrations\Automations\AutomationsBridge;
 use Goldnead\AppApi\Integrations\WebhookManager\WebhookManagerBridge;
 use Goldnead\AppApi\Services\Tokens;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -152,7 +153,7 @@ class Overview
 
         if ($enabled && $table) {
             $rows = $this->tokens->all()->map(function (PersonalAccessToken $token) {
-                $owner = Users::of($token->tokenable instanceof \Illuminate\Contracts\Auth\Authenticatable ? $token->tokenable : null);
+                $owner = Users::of($token->tokenable instanceof Authenticatable ? $token->tokenable : null);
 
                 return Tokens::present($token) + [
                     'user' => $owner instanceof User ? [

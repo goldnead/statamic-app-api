@@ -8,6 +8,7 @@ use Goldnead\AppApi\Support\UserResource;
 use Goldnead\AppApi\Support\Users;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Statamic\Http\Controllers\User\PasskeyLoginController;
 
 /**
@@ -22,7 +23,7 @@ class PasskeyController extends PasskeyLoginController
         try {
             parent::login($request);
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Validation\ValidationException) {
+            if ($e instanceof ValidationException) {
                 throw $e;
             }
 
