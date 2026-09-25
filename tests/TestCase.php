@@ -171,6 +171,35 @@ abstract class TestCase extends AddonTestCase
     }
 
     /**
+     * Sign in on Statamic's web guard, as the session would.
+     *
+     * After a request through `auth:sanctum` the default guard is Sanctum's
+     * request guard, which remembers the user it resolved. Switching users
+     * in a test has to start from fresh guards, or the next request still
+     * sees the previous user (or nobody).
+     */
+    public function be(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
+    {
+        // A new person is a new session: Sanctum's AuthenticateSession would
+        // otherwise find the previous person's password hash and sign out.
+        if ($this->app->bound('session')) {
+            $this->app['session']->flush();
+        }
+
+        $this->app['auth']->forgetGuards();
+        $this->app['auth']->shouldUse('web');
+
+        return parent::be($user, $guard ?? 'web');
+    }
+
+    protected function signOut(): void
+    {
+        $this->app['auth']->forgetGuards();
+        $this->app['auth']->shouldUse('web');
+        $this->app['auth']->guard('web')->logout();
+    }
+
+    /**
      * A JSON request the way a SPA sends it: from the site's own origin, so
      * Sanctum treats it as stateful (session cookie, CSRF).
      *
