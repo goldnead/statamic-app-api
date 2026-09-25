@@ -91,18 +91,25 @@ class ServiceProvider extends AddonServiceProvider
     public function bootAddon(): void
     {
         $this
-            ->bootMiddleware()
+            ->bootMiddlewareAliases()
             ->bootRateLimits()
             ->bootErrors()
-            ->bootRoutes()
+            ->bootApiRoutes()
             ->bootNav()
             ->bootPermissions()
             ->bootBridges()
-            ->bootCommands()
-            ->bootPublishables();
+            ->bootExportPruning()
+            ->bootConfigPublishing();
     }
 
-    protected function bootMiddleware(): self
+    /**
+     * Named so as not to shadow Statamic's own `bootMiddleware()`,
+     * `bootRoutes()`, `bootCommands()` and `bootPublishables()`, which the
+     * addon provider runs before `bootAddon()`: a method of the same name
+     * here would replace them, and the CP routes, the commands and the
+     * published CP bundle would silently be gone.
+     */
+    protected function bootMiddlewareAliases(): self
     {
         /** @var Router $router */
         $router = $this->app['router'];
@@ -167,7 +174,7 @@ class ServiceProvider extends AddonServiceProvider
         return config('app-api.routes.enabled', true) && ($request->is($prefix) || $request->is($prefix.'/*'));
     }
 
-    protected function bootRoutes(): self
+    protected function bootApiRoutes(): self
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
 
@@ -232,7 +239,7 @@ class ServiceProvider extends AddonServiceProvider
      * The commands in src/Commands are found by Statamic; only the schedule
      * is ours to add.
      */
-    protected function bootCommands(): self
+    protected function bootExportPruning(): self
     {
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('app-api:prune-exports')->hourly();
@@ -241,7 +248,7 @@ class ServiceProvider extends AddonServiceProvider
         return $this;
     }
 
-    protected function bootPublishables(): self
+    protected function bootConfigPublishing(): self
     {
         $this->publishes([
             __DIR__.'/../config/app-api.php' => config_path('app-api.php'),
