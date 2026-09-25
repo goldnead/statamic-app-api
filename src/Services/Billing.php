@@ -156,9 +156,28 @@ class Billing
      */
     public function authorizeChange(Subscription $subscription): void
     {
-        if ($this->teamIdOf($subscription) !== null && ! $this->canManageTeam()) {
+        if (! $this->mayChange($subscription)) {
             throw ApiException::make('forbidden', 403);
         }
+    }
+
+    /**
+     * A team's agreement is changed by `manage billing` in **that** team,
+     * named in the header. Having paid for it is not enough: the payer may
+     * have left, and `manage billing` in a team of their own says nothing
+     * about this one.
+     */
+    public function mayChange(Subscription $subscription): bool
+    {
+        $teamId = $this->teamIdOf($subscription);
+
+        if ($teamId === null) {
+            return true;
+        }
+
+        $team = $this->team();
+
+        return $team !== null && (int) $team->getKey() === $teamId && $this->canManageTeam();
     }
 
     /** @return Builder<Payment> */
@@ -351,7 +370,7 @@ class Billing
         $pauses = app(SubscriptionPauses::class);
         $gateway = $this->gatewayOf($subscription);
         $running = $subscription->isRunning() || $subscription->isClaimed();
-        $mayChange = $this->teamIdOf($subscription) === null || $this->canManageTeam();
+        $mayChange = $this->mayChange($subscription);
         $paidUntil = self::paidUntil($subscription);
         $cancelHere = $this->mayCancelHere($subscription);
         $canChangeMethod = $subscription->isRunning()

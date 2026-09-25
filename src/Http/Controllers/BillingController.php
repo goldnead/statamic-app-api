@@ -11,6 +11,7 @@ use Goldnead\StatamicPayments\Models\Subscription;
 use Goldnead\StatamicPayments\Portal\Display;
 use Goldnead\StatamicPayments\Portal\Mail\CancellationConfirmed;
 use Goldnead\StatamicPayments\Support\Anrede;
+use Goldnead\StatamicPayments\Support\Brands;
 use Goldnead\StatamicPayments\Support\LocalTime;
 use Goldnead\StatamicPayments\Support\Money;
 use Goldnead\StatamicPayments\Support\SubscriptionPauses;
@@ -196,7 +197,9 @@ class BillingController extends Controller
 
         $record = $record->fresh() ?? $record;
         $moment = $this->momentOf($record);
-        $sent = $this->confirmByMail($billing, $record, $email, $moment, $until);
+        // Under the agreement's brand: sender, wording and form of address of
+        // the confirmation are that brand's, whatever this request resolved.
+        $sent = (bool) Brands::runFor((int) $record->brand_id, fn () => $this->confirmByMail($billing, $record, $email, $moment, $until));
 
         return $this->cancelled($billing, $record, $email, $moment, $until, false, $sent);
     }

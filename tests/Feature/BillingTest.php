@@ -381,6 +381,23 @@ class BillingTest extends TestCase
         $this->assertSame([], $this->provider->cancelled);
     }
 
+    #[Test]
+    #[DataProvider('writeEndpoints')]
+    public function the_payer_who_left_cannot_change_the_team_subscription_through_another_team(string $method, string $uri): void
+    {
+        [, $team, $payer] = $this->teamWith('admin');
+        $ids = $this->rowsOf(['team_id' => $team->id, 'app_api_user_id' => (string) $payer->id()]);
+        Teams::removeMember($team, $payer);
+        $own = Teams::create('Eigenes Team', $payer);
+        $this->actingAs($payer);
+
+        // Still readable: the payer paid for it.
+        $this->api('GET', $this->path('billing/subscriptions/{subscription}', $ids), [], $this->teamHeader($own))->assertOk()
+            ->assertJsonPath('subscription.actions.cancel', false);
+        $this->assertError($this->api($method, $this->path($uri, $ids), ['confirmed' => true], $this->teamHeader($own)), 403, 'forbidden');
+        $this->assertSame([], $this->provider->cancelled);
+    }
+
     // Subscriptions ----------------------------------------------------------
 
     #[Test]
