@@ -20,6 +20,10 @@ sibling addons' services. An area whose addon is not installed has no routes.
 - **Checkout** from [statamic-payments](https://github.com/goldnead/statamic-payments) and
   [statamic-offers](https://github.com/goldnead/statamic-offers): answers `{checkout_url}` instead
   of a redirect, the same request twice gives the same checkout; a link into the customer portal.
+- **Customer area** from statamic-payments and [statamic-invoices](https://github.com/goldnead/statamic-invoices):
+  orders, invoices and credit notes (PDF), subscriptions with paid-until, next charge and the
+  masked payment method, and what the customer portal offers: cancel (§ 312k BGB), pause, resume,
+  switch plan, change the payment method. For the user and, with `view billing`, the current team.
 - **Personal access tokens** (optional) for clients without a browser.
 - One error shape, an **OpenAPI 3.1 description** ([`openapi.json`](openapi.json)), and a Control
   Panel page listing every endpoint and what is wired.
@@ -28,8 +32,8 @@ sibling addons' services. An area whose addon is not installed has no routes.
 
 - PHP 8.2+, Laravel 12.40+ or 13, Statamic 6
 - Laravel Sanctum 4 (a dependency of this addon)
-- Optional: statamic-accounts, statamic-teams, statamic-entitlements, statamic-payments,
-  statamic-offers, statamic-brand-context, statamic-automations, statamic-webhook-manager,
+- Optional: statamic-accounts, statamic-teams, statamic-entitlements, statamic-payments (1.29+
+  for the customer area), statamic-invoices (documents), statamic-offers, statamic-brand-context, statamic-automations, statamic-webhook-manager,
   statamic-activity
 
 ## Installation
@@ -69,7 +73,7 @@ With a token instead: `Authorization: Bearer <plain_text_token>` (no CSRF cookie
 | `routes.guard` | `sanctum` | What "signed in" means: session or token. |
 | `routes.rate_limit` | `120` | Requests per minute per user (per address for guests). |
 | `routes.openapi` | `true` | Serve `{prefix}/openapi.json`. |
-| `areas.session/account/teams/access/checkout` | `true` | Switch an area off. A missing addon switches it off by itself. |
+| `areas.session/account/teams/access/checkout/billing` | `true` | Switch an area off. A missing addon switches it off by itself. |
 | `areas.tokens` | `false` | Personal access tokens. |
 | `auth.registration` | `true` | `POST session/register`. |
 | `auth.password_reset_url` | `null` | The app's page for a new password; the mail links there with `?token=`. |
@@ -78,6 +82,7 @@ With a token instead: `Authorization: Bearer <plain_text_token>` (no CSRF cookie
 | `checkout.idempotency_seconds` | `300` | How long the same request answers with the same checkout. |
 | `checkout.return_url` | `null` | Where the provider sends the buyer back (a path). |
 | `portal.require_verified_email` | `true` | Only a confirmed address gets a portal link. |
+| `billing.return_url` | `null` | Where the provider sends the buyer back after a new payment method (a path; the client may pass `return_url`). |
 | `export.link_minutes` | `10` | Lifetime of an export's download link. |
 | `tokens.abilities` / `tokens.expires_after_days` | `['*']` / `null` | What a token may ask for, how long it lives. |
 
@@ -157,6 +162,18 @@ named in the header, 403 `not_member` for a team the user is not in, whether it 
 | POST | `/checkout` | team header | Start a purchase (`product` or `offer`, `for: user\|team`, `confirmed` accepted, `consent_version` from the terms). 201 `{checkout_url, payment}`; the same request again 200 with `reused: true`. `Idempotency-Key` narrows it; the same key with another body is 422. |
 | GET | `/checkout/{payment}` | session/token | State of an own checkout. |
 | POST | `/portal` | session/token | Signed link into the customer portal. 403 `email_unverified` for an unconfirmed address. |
+| GET | `/billing` | team header | Paid orders and subscriptions (user, and team with `view billing`), `links.cancellation_url`, `links.withdrawal_url`, `display.timezone`, `display.anrede`. |
+| GET | `/billing/payments/{payment}` | team header | One order with `lines` and `documents`. |
+| GET | `/billing/documents` | team header | Invoices and credit notes, newest first. |
+| GET | `/billing/documents/{document}` | team header | The PDF (attachment, `no-store`). |
+| GET | `/billing/subscriptions` | team header | Subscriptions with status, paid until, next charge, price, masked payment method, `actions`. |
+| GET | `/billing/subscriptions/{subscription}` | team header | One subscription. |
+| GET | `/billing/subscriptions/{subscription}/cancel` | team header | What the confirmation page shows before the button. |
+| POST | `/billing/subscriptions/{subscription}/cancel` | team header | Cancel at the end of the paid period (`confirmed: true`). Mail as in the portal. No confirmation. |
+| GET, POST | `/billing/subscriptions/{subscription}/pause` | team header | Pause preview; pause (`resume_on` optional). |
+| POST | `/billing/subscriptions/{subscription}/resume` | team header | End a pause. |
+| GET, POST | `/billing/subscriptions/{subscription}/switch` | team header | Plans to switch to; switch (`to`). |
+| POST | `/billing/subscriptions/{subscription}/payment-method` | team header | `{url}` of the provider's page for a new payment method (`return_url`: a path on this site). |
 | GET | `/tokens` | session/token | Own tokens. |
 | POST | `/tokens` | confirmation | New token; `plain_text_token` only in this answer. 201. |
 | DELETE | `/tokens/{token}` | session/token | Revoke. 204. |
@@ -181,13 +198,13 @@ needs to act (`blockers`, `products`, `quota`, `retry_after`, `method`).
 | 402 | `payment_required` |
 | 403 | `forbidden`, `two_factor_setup_required`, `token_ability_missing`, `not_member`, `invitation_wrong_email`, `join_disabled`, `impersonation_locked`, `email_unverified`, `invalid_signature` |
 | 404 | `not_found`, `product_not_found`, `invitation_not_found`, `join_code_invalid`, `export_disabled`, `portal_disabled` |
-| 409 | `consent_changed`, `two_factor_already_enabled`, `already_verified`, `verification_disabled`, `deletion_blocked`, `account_refused`, `offer_unavailable`, `sold_out`, `tokens_unsupported` |
+| 409 | `consent_changed`, `two_factor_already_enabled`, `already_verified`, `verification_disabled`, `deletion_blocked`, `account_refused`, `offer_unavailable`, `sold_out`, `tokens_unsupported`, `cancel_elsewhere` (with `details.cancellation_url`), `cancel_busy`, `pause_unavailable`, `switch_unavailable`, `method_unavailable` |
 | 410 | `invitation_expired`, `invitation_used`, `invitation_revoked` |
 | 419 | `csrf_token_mismatch` |
-| 422 | `validation_failed` (with `details.errors`), `invalid_credentials`, `passkey_required`, `invalid_passkey`, `two_factor_not_started`, `reset_failed`, `email_rejected`, `consent_required`, `idempotency_key_reused`, `checkout_refused`, `team_required`, `unknown_role`, `last_owner`, `already_member`, `personal_team`, `code_unavailable`, `request_refused` |
+| 422 | `validation_failed` (with `details.errors`), `invalid_credentials`, `passkey_required`, `invalid_passkey`, `two_factor_not_started`, `reset_failed`, `email_rejected`, `consent_required`, `idempotency_key_reused`, `checkout_refused`, `confirmation_required`, `pause_date_invalid`, `team_required`, `unknown_role`, `last_owner`, `already_member`, `personal_team`, `code_unavailable`, `request_refused` |
 | 423 | `elevation_required` (with `details.method`, `details.confirm_url`), `read_only` |
 | 429 | `too_many_requests` (with `Retry-After`), `too_many_attempts`, `quota_exceeded` |
-| 503 | `provider_unavailable` |
+| 503 | `provider_unavailable`, `cancel_failed`, `pause_failed`, `resume_failed`, `switch_failed`, `method_failed` |
 
 ### The order form (§ 312j BGB)
 
@@ -198,6 +215,33 @@ statamic-payments. For anything else there is no consent text. The checkbox is `
 (strictly accepted), `consent_version` is the version the form showed; a different version is 409
 `consent_changed` with the current wording in `details`. **The order button must read
 "zahlungspflichtig bestellen"** (or an equally unambiguous wording); that part is the app's.
+
+### The customer area
+
+The same rows and the same rules as the customer portal of statamic-payments, with the signed-in
+user in place of the mailed link:
+
+- **Whose rows.** Paid orders and subscriptions the app recorded for this user
+  (`meta.app_api_user_id`, carried to renewals), and rows without that note whose address is the
+  user's **confirmed** address. With the team header: the current team's rows (`meta.team_id`) when
+  the user holds `view billing` there. A row outside these is 404 `not_found`. Changing a team's
+  subscription needs `manage billing` (403 `forbidden`).
+- **Texts.** Every label and message comes from statamic-payments, in its form of address
+  (`anrede`: du or Sie) and its display time zone; times are ISO 8601 in that zone, with a
+  `*_display` twin. Show the texts as they come.
+- **Cancelling (§ 312k BGB).** `GET …/cancel` gives what the confirmation page shows, including the
+  button label ("Jetzt kündigen"); `POST …/cancel` with `confirmed: true` goes through
+  `Subscriptions::cancel()`, which asks the provider first and fires `SubscriptionCancelled`, then
+  mails the confirmation in Textform to the user (`mail_sent`, `mail_message`) and logs it at the
+  order. It takes effect at the end of the paid period. There is **no elevated session** in the
+  way: the statute wants the cancellation without extra hurdles, and the portal itself asks for no
+  more than the mailed link. Where a product keeps cancelling out of the portal, the answer is 409
+  `cancel_elsewhere` with the statutory page without login; that page (`links.cancellation_url`)
+  and the withdrawal function (`links.withdrawal_url`, § 356a BGB) stay reachable either way.
+- **Payment method.** `POST …/payment-method` answers the provider's URL; on Mollie that is a
+  small verification charge (`verification`, `note`), as in the portal.
+- **Documents** come from statamic-invoices (invoices and credit notes), rendered through its
+  `PdfRenderer`. Without statamic-invoices the list is empty (`documents_available: false`).
 
 ### Enforced two-factor authentication
 
@@ -210,7 +254,7 @@ logout and the 2FA setup answers 403 `two_factor_setup_required`, as Statamic's 
 
 A personal access token reaches an area only with `<area>:read` (GET) or `<area>:write` (everything
 else), e.g. `teams:read`, `checkout:write`, or `*`. Areas: `session`, `account`, `teams`, `access`,
-`checkout`, `tokens`. Switching `areas.tokens` off also refuses tokens handed out before (401
+`checkout`, `billing`, `tokens`. Switching `areas.tokens` off also refuses tokens handed out before (401
 `tokens_disabled`).
 
 ### Sessions need a stateful origin

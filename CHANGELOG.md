@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Area `billing`, the customer area of statamic-payments as JSON (token abilities `billing:read` and `billing:write`, team through the team header):
+  - `GET billing`: paid orders and subscriptions of the user, and of the current team with `view billing`, with the links to cancelling without login (§ 312k BGB) and to the withdrawal function (§ 356a BGB), the display time zone and the form of address of statamic-payments.
+  - `GET billing/payments/{payment}`, `GET billing/documents`, `GET billing/documents/{document}`: one order with lines, invoices and credit notes from statamic-invoices, the PDF as attachment.
+  - `GET billing/subscriptions(/{subscription})`: status, paid until, next charge, price, rhythm, running coupon, masked payment method, open actions.
+  - `GET|POST billing/subscriptions/{subscription}/cancel`: the confirmation page's content, then the cancellation through `Subscriptions::cancel()` with the confirmation mail and the log entry of the portal. No elevated session.
+  - Pause, resume, switch plan and a new payment method (the provider's URL), as the portal offers them.
+- New subscriptions carry `app_api_user_id` from their first payment (`Subscriptions::inheritMeta()`).
+- Setting `billing.return_url`.
+
 ## 0.1.1 — 2026-09-25
 
 ### Fixed
