@@ -14,14 +14,6 @@ on:
 permissions:
   contents: read
 
-# statamic-accounts and statamic-teams (dev dependencies, the siblings the
-# suite runs against) are not on Packagist yet. Each job points Composer at
-# their GitHub repositories before installing; composer.json itself stays
-# free of custom repositories, which a buyer's install could not resolve.
-# Remove the step once both are published.
-env:
-  COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.GITHUB_TOKEN }}"}}'
-
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -50,11 +42,6 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, intl, fileinfo, sqlite3, pdo_sqlite
           coverage: none
 
-      - name: Siblings from GitHub
-        run: |
-          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
-          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
-
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
@@ -74,10 +61,6 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
-
-      - run: |
-          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
-          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
 
       - run: composer install --prefer-dist --no-interaction
 
@@ -120,10 +103,6 @@ jobs:
           php-version: '8.3'
           coverage: none
 
-      - run: |
-          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
-          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
-
       - run: composer install --prefer-dist --no-interaction
 
       - run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=1G
@@ -139,10 +118,6 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
-
-      - run: |
-          composer config repositories.accounts vcs https://github.com/goldnead/statamic-accounts
-          composer config repositories.teams vcs https://github.com/goldnead/statamic-teams
 
       # `@statamic/cms` is installed from the vendor directory, so Composer has
       # to run before npm.
