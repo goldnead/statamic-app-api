@@ -71,7 +71,7 @@ class Overview
             'area' => $e['area'],
             'method' => $e['method'],
             'path' => Endpoints::path((string) $e['uri']),
-            'summary' => $e['summary'],
+            'summary' => $this->summary($e),
             'auth' => $e['auth'],
             'elevated' => $e['elevated'],
             'team' => $e['team'],
@@ -79,6 +79,21 @@ class Overview
             'errors' => $e['errors'],
             'registered' => Route::has($prefix.$e['name']),
         ], Endpoints::all());
+    }
+
+    /**
+     * The endpoint's description in the CP's language: a translation under
+     * `app-api::endpoints.<name>`, else the English one from the catalogue
+     * (which is also what the OpenAPI description carries).
+     *
+     * @param  array<string, mixed>  $endpoint
+     */
+    protected function summary(array $endpoint): string
+    {
+        $key = 'app-api::endpoints.'.str_replace(['.', '-'], '_', (string) $endpoint['name']);
+        $text = __($key);
+
+        return is_string($text) && $text !== $key ? $text : (string) $endpoint['summary'];
     }
 
     /** @return array<string, mixed> */

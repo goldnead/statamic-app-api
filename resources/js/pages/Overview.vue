@@ -243,7 +243,7 @@ function revoke() {
                                         <div class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ event.handle }}</div>
                                         <Description :text="event.description" class="mt-1" />
                                     </TableCell>
-                                    <TableCell><span class="text-gray-500 dark:text-gray-400">{{ __('None') }}</span></TableCell>
+                                    <TableCell><span class="text-gray-400">–</span></TableCell>
                                     <TableCell class="text-end tabular-nums">
                                         <a v-if="integrations.automations.installed && integrations.automations.url" :href="integrations.automations.url" class="text-ui-accent-text underline">{{ event.automations }}</a>
                                         <span v-else class="text-gray-400">–</span>
