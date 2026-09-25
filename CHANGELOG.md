@@ -15,3 +15,13 @@
 - Control Panel page "App API": endpoints, areas, request setup, error codes, wiring, tokens.
 - Events `app-api.token.created` and `app-api.token.revoked`, bridged to automations, webhook-manager and activity.
 - Settings on the shared settings page of statamic-brand-context.
+- Enforced two-factor authentication holds for the API (403 `two_factor_setup_required`), with setup endpoints over Statamic's own actions.
+- `GET checkout/terms` and `consent_version`: the consent text only for digital content, the version checked (409 `consent_changed`), `confirmed` strictly accepted, the order button label in the OpenAPI description.
+- Token abilities per area (`<area>:read`/`write`); tokens refused while `areas.tokens` is off.
+
+### Fixed
+
+- A payment is found by address only when the address is confirmed.
+- An `Idempotency-Key` reused with another body is 422 `idempotency_key_reused` instead of the first checkout.
+- A session endpoint called from outside `sanctum.stateful` is 400 `stateful_origin_required`, not 500.
+- New session id after registration; the elevation code uses Statamic's `send-elevated-session-code` limiter.

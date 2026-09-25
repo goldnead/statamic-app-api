@@ -111,6 +111,10 @@ named in the header, 403 `not_member` for a team the user is not in, whether it 
 | GET | `/openapi.json` | | This description. |
 | POST | `/session/login` | | Statamic's login. `{two_factor: true}` when a code follows. |
 | POST | `/session/two-factor` | | Code or recovery code. |
+| POST | `/session/two-factor/setup` | confirmation | Start the 2FA setup (Statamic's action): secret, QR (SVG), confirm URL. |
+| POST | `/session/two-factor/confirm` | confirmation | Confirm with a code; answers the recovery codes. |
+| DELETE | `/session/two-factor` | confirmation | Switch 2FA off. |
+| GET, POST | `/session/two-factor/recovery-codes` | confirmation | Show or renew the recovery codes. |
 | GET | `/session/passkey/options` | | WebAuthn options. |
 | POST | `/session/passkey` | | Passkey login. |
 | POST | `/session/register` | | Statamic's registration, signs in. 201. |
@@ -149,7 +153,8 @@ named in the header, 403 `not_member` for a team the user is not in, whether it 
 | GET | `/access` | team header | Products and quotas, user and team. |
 | GET | `/access/products/{product}` | team header | `allowed`, with the decision for user and team. |
 | GET | `/access/quotas/{key}` | team header | One quota for user and team (`?current=` for stock limits). |
-| POST | `/checkout` | team header | Start a purchase (`product` or `offer`, `for: user\|team`, `confirmed: true`). 201 `{checkout_url, payment}`; the same request again 200 with `reused: true`. `Idempotency-Key` narrows it. |
+| GET | `/checkout/terms` | session/token | `?product=` or `?offer=`: consent text (digital content only), `consent_version`, `button_label`. |
+| POST | `/checkout` | team header | Start a purchase (`product` or `offer`, `for: user\|team`, `confirmed` accepted, `consent_version` from the terms). 201 `{checkout_url, payment}`; the same request again 200 with `reused: true`. `Idempotency-Key` narrows it; the same key with another body is 422. |
 | GET | `/checkout/{payment}` | session/token | State of an own checkout. |
 | POST | `/portal` | session/token | Signed link into the customer portal. 403 `email_unverified` for an unconfirmed address. |
 | GET | `/tokens` | session/token | Own tokens. |
@@ -171,17 +176,47 @@ needs to act (`blockers`, `products`, `quota`, `retry_after`, `method`).
 
 | Status | Codes |
 |---|---|
-| 401 | `unauthenticated` |
+| 400 | `stateful_origin_required` |
+| 401 | `unauthenticated`, `tokens_disabled` |
 | 402 | `payment_required` |
-| 403 | `forbidden`, `not_member`, `invitation_wrong_email`, `join_disabled`, `impersonation_locked`, `email_unverified`, `invalid_signature` |
+| 403 | `forbidden`, `two_factor_setup_required`, `token_ability_missing`, `not_member`, `invitation_wrong_email`, `join_disabled`, `impersonation_locked`, `email_unverified`, `invalid_signature` |
 | 404 | `not_found`, `product_not_found`, `invitation_not_found`, `join_code_invalid`, `export_disabled`, `portal_disabled` |
-| 409 | `already_verified`, `verification_disabled`, `deletion_blocked`, `account_refused`, `offer_unavailable`, `sold_out`, `tokens_unsupported` |
+| 409 | `consent_changed`, `two_factor_already_enabled`, `already_verified`, `verification_disabled`, `deletion_blocked`, `account_refused`, `offer_unavailable`, `sold_out`, `tokens_unsupported` |
 | 410 | `invitation_expired`, `invitation_used`, `invitation_revoked` |
 | 419 | `csrf_token_mismatch` |
-| 422 | `validation_failed` (with `details.errors`), `invalid_credentials`, `passkey_required`, `invalid_passkey`, `two_factor_not_started`, `reset_failed`, `email_rejected`, `consent_required`, `checkout_refused`, `team_required`, `unknown_role`, `last_owner`, `already_member`, `personal_team`, `code_unavailable`, `request_refused` |
+| 422 | `validation_failed` (with `details.errors`), `invalid_credentials`, `passkey_required`, `invalid_passkey`, `two_factor_not_started`, `reset_failed`, `email_rejected`, `consent_required`, `idempotency_key_reused`, `checkout_refused`, `team_required`, `unknown_role`, `last_owner`, `already_member`, `personal_team`, `code_unavailable`, `request_refused` |
 | 423 | `elevation_required` (with `details.method`, `details.confirm_url`), `read_only` |
 | 429 | `too_many_requests` (with `Retry-After`), `too_many_attempts`, `quota_exceeded` |
 | 503 | `provider_unavailable` |
+
+### The order form (§ 312j BGB)
+
+Before the order button, `GET checkout/terms` says what to show. For digital content
+(`digital` in the catalogue of statamic-products or statamic-offers) that is the consent to an
+immediate start that ends the right of withdrawal: the offer's own waiver, else the wording of
+statamic-payments. For anything else there is no consent text. The checkbox is `confirmed`
+(strictly accepted), `consent_version` is the version the form showed; a different version is 409
+`consent_changed` with the current wording in `details`. **The order button must read
+"zahlungspflichtig bestellen"** (or an equally unambiguous wording); that part is the app's.
+
+### Enforced two-factor authentication
+
+With `statamic.users.two_factor_enforced_roles`, a user without 2FA gets
+`two_factor_setup_required: true` at login, and every endpoint except the session ones, `me`,
+logout and the 2FA setup answers 403 `two_factor_setup_required`, as Statamic's own
+`RedirectIfTwoFactorSetupIncomplete` does for its pages.
+
+### Token abilities
+
+A personal access token reaches an area only with `<area>:read` (GET) or `<area>:write` (everything
+else), e.g. `teams:read`, `checkout:write`, or `*`. Areas: `session`, `account`, `teams`, `access`,
+`checkout`, `tokens`. Switching `areas.tokens` off also refuses tokens handed out before (401
+`tokens_disabled`).
+
+### Sessions need a stateful origin
+
+Login, 2FA, passkeys, registration, the forgotten password and the elevated session live in the
+session. A request from a domain outside `sanctum.stateful` gets 400 `stateful_origin_required`.
 
 ### Confirmation (elevated session)
 

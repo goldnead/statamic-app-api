@@ -4,6 +4,7 @@ namespace Goldnead\AppApi\Http\Controllers;
 
 use Goldnead\AppApi\Exceptions\ApiException;
 use Goldnead\AppApi\Services\CheckoutStarter;
+use Goldnead\AppApi\Services\CheckoutTerms;
 use Goldnead\AppApi\Support\Subjects;
 use Goldnead\AppApi\Support\UserResource;
 use Goldnead\AppApi\Support\Users;
@@ -13,10 +14,28 @@ use Goldnead\StatamicPayments\Support\Brands;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class CheckoutController extends Controller
 {
-    public function start(Request $request, CheckoutStarter $starter): JsonResponse
+    /**
+     * What the order form must show (§ 312j BGB): the consent text and its
+     * version for the checkbox, and the label of the order button.
+     */
+    public function terms(Request $request, CheckoutTerms $terms): JsonResponse
+    {
+        $data = $request->validate([
+            'product' => ['required_without:offer', 'nullable', 'string', 'max:191'],
+            'offer' => ['required_without:product', 'nullable', 'string', 'max:191'],
+        ]);
+
+        $found = $terms->for($data['product'] ?? null, $data['offer'] ?? null);
+        unset($found['withdrawal']);
+
+        return new JsonResponse($found);
+    }
+
+    public function start(Request $request, CheckoutStarter $starter, CheckoutTerms $termsFor): JsonResponse
     {
         $data = $request->validate([
             'product' => ['required_without:offer', 'nullable', 'string', 'max:191'],
@@ -29,21 +48,31 @@ class CheckoutController extends Controller
             'amount' => ['nullable', 'integer', 'min:0'],
             'country' => ['nullable', 'string', 'size:2'],
             'confirmed' => ['nullable'],
+            'consent_version' => ['required', 'string', 'max:191'],
             'return_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
-        // The order button's own checkbox (§ 312j BGB, and the consent to an
-        // immediate start under § 356 Abs. 5 BGB for digital goods): without
-        // it nothing is started. The wording stored with the payment is the
-        // server's, never the client's.
-        if (! $request->boolean('confirmed')) {
+        // The order form's checkbox: strictly accepted (true, 1, "yes", "on"),
+        // as Laravel's `accepted` reads it. Without it nothing is started. The
+        // wording stored with the payment is the server's, never the client's.
+        if (Validator::make($request->only('confirmed'), ['confirmed' => ['accepted']])->fails()) {
             throw ApiException::make('consent_required', 422, 'confirmed');
+        }
+
+        $terms = $termsFor->for($data['product'] ?? null, $data['offer'] ?? null);
+
+        // The form showed another wording than the one in force now.
+        if ($data['consent_version'] !== $terms['consent_version']) {
+            throw ApiException::make('consent_changed', 409, 'consent_version', [
+                'consent_text' => $terms['consent_text'],
+                'consent_version' => $terms['consent_version'],
+            ]);
         }
 
         $user = Users::current($request);
         $team = Subjects::team();
 
-        $started = $starter->start($user, $team, $data, $request->header('Idempotency-Key'));
+        $started = $starter->start($user, $team, $data, $request->header('Idempotency-Key'), $terms);
 
         return new JsonResponse($this->present($started['payment'], $started['checkout_url'], $started['reused']), $started['reused'] ? 200 : 201);
     }
@@ -53,7 +82,11 @@ class CheckoutController extends Controller
         $user = Users::current($request);
         $record = Payment::query()->find($payment);
 
-        if (! $record instanceof Payment || ! $this->belongsTo($record, (string) $user->id(), (string) $user->email())) {
+        // By the address only when it is confirmed, as for the portal:
+        // registering with a stranger's address must not open their orders.
+        $email = UserResource::verified($user) === true ? (string) $user->email() : '';
+
+        if (! $record instanceof Payment || ! $this->belongsTo($record, (string) $user->id(), $email)) {
             throw ApiException::notFound();
         }
 

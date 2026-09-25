@@ -42,6 +42,12 @@ class RegisterController extends Controller
 
         $user = $created ? Users::of($request->user()) : null;
 
+        // Core signs the new user in with `Auth::login()` and keeps the
+        // session id. A fresh id after a change of identity, as after a login.
+        if ($user !== null && $request->hasSession()) {
+            $request->session()->regenerate();
+        }
+
         return new JsonResponse(['user' => $user === null ? null : UserResource::make($user)], 201);
     }
 }

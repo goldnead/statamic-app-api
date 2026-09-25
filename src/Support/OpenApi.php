@@ -68,6 +68,10 @@ class OpenApi
             'summary' => $endpoint['summary'],
         ];
 
+        if (! empty($endpoint['description'])) {
+            $operation['description'] = $endpoint['description'];
+        }
+
         $parameters = [];
 
         if (preg_match_all('/\{(\w+)\}/', (string) $endpoint['uri'], $matches)) {
@@ -133,7 +137,15 @@ class OpenApi
         $errors = (array) $endpoint['errors'];
 
         if ($endpoint['auth']) {
-            $errors[] = 'unauthenticated';
+            array_push($errors, 'unauthenticated', 'tokens_disabled', 'token_ability_missing');
+
+            if (! $endpoint['setup']) {
+                $errors[] = 'two_factor_setup_required';
+            }
+        }
+
+        if ($endpoint['session']) {
+            $errors[] = 'stateful_origin_required';
         }
 
         $byStatus = [];
@@ -232,7 +244,16 @@ class OpenApi
                 'two_factor_enabled' => $bool, 'current_team_id' => $nullableInt,
             ], ['id', 'email']),
             'UserEnvelope' => $object(['user' => ['oneOf' => [$ref('User'), ['type' => 'null']]]], ['user']),
-            'LoginResult' => $object(['two_factor' => $bool, 'user' => ['oneOf' => [$ref('User'), ['type' => 'null']]]], ['two_factor', 'user']),
+            'LoginResult' => $object(['two_factor' => $bool, 'two_factor_setup_required' => $bool, 'user' => ['oneOf' => [$ref('User'), ['type' => 'null']]]], ['two_factor', 'two_factor_setup_required', 'user']),
+            'TwoFactorSetup' => $object(['qr' => ['type' => 'string', 'description' => 'SVG'], 'secret_key' => $string, 'confirm_url' => $string]),
+            'RecoveryCodes' => $object(['recovery_codes' => $list($string)]),
+            'TwoFactorOff' => $object(['two_factor_setup_required' => $bool]),
+            'CheckoutTerms' => $object([
+                'product' => $nullableString, 'offer' => $nullableString, 'digital' => $bool,
+                'consent_text' => ['type' => ['string', 'null'], 'description' => 'Shown next to the checkbox. Null: no consent text, the checkbox confirms the order only.'],
+                'consent_version' => ['type' => 'string', 'description' => 'Send back as consent_version with POST checkout.'],
+                'button_label' => ['type' => 'string', 'description' => 'The label of the order button (§ 312j Abs. 3 BGB).'],
+            ], ['digital', 'consent_text', 'consent_version', 'button_label']),
             'Message' => $object(['message' => $string]),
             'Sent' => $object(['sent' => $bool]),
             'Elevation' => $object([

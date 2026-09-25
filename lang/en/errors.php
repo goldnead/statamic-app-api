@@ -51,4 +51,11 @@ return [
     'portal_disabled' => 'The customer portal is switched off.',
 
     'tokens_unsupported' => 'This account cannot hold access tokens.',
+    'tokens_disabled' => 'Access tokens are switched off on this site.',
+    'token_ability_missing' => 'This access token may not do this.',
+    'stateful_origin_required' => 'This needs a session. Send the request from a domain listed in sanctum.stateful.',
+    'two_factor_setup_required' => 'Please set up two-factor authentication first.',
+    'two_factor_already_enabled' => 'Two-factor authentication is already set up.',
+    'consent_changed' => 'The order terms have changed. Please confirm them again.',
+    'idempotency_key_reused' => 'This Idempotency-Key was already used for another request.',
 ];

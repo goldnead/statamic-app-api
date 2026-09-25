@@ -174,6 +174,12 @@ class ErrorRenderer
             return [$status, $code, $message, null, [], array_map('strval', $e->getHeaders())];
         }
 
+        // A request outside `sanctum.stateful` that reached code needing the
+        // session (RequireSession covers the known endpoints; this is the net).
+        if ($e instanceof \RuntimeException && str_contains($e->getMessage(), 'Session store not set')) {
+            return [400, 'stateful_origin_required', $this->message('stateful_origin_required'), null, ['config' => 'sanctum.stateful'], []];
+        }
+
         $message = config('app.debug') ? $e->getMessage() : $this->message('server_error');
 
         return [500, 'server_error', $message, null, [], []];

@@ -4,6 +4,7 @@ namespace Goldnead\AppApi\Tests;
 
 use Goldnead\Accounts\Support\Schema;
 use Goldnead\AppApi\ServiceProvider;
+use Goldnead\AppApi\Services\CheckoutTerms;
 use Goldnead\AppApi\Tests\Fakes\FakeGateway;
 use Goldnead\StatamicPayments\Contracts\PaymentGateway;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -101,7 +102,7 @@ abstract class TestCase extends AddonTestCase
         $app['config']->set('sanctum.stateful', ['localhost']);
 
         $app['config']->set('statamic-payments.products', [
-            'lifetime' => ['name' => 'Lifetime', 'amount_cent' => 7900, 'grants' => ['choirlive-pro']],
+            'lifetime' => ['name' => 'Lifetime', 'amount_cent' => 7900, 'grants' => ['choirlive-pro'], 'digital' => true],
             'chortarif' => ['name' => 'Chortarif', 'amount_cent' => 7900, 'grants' => ['choirlive-team']],
         ]);
     }
@@ -215,6 +216,23 @@ abstract class TestCase extends AddonTestCase
             'Referer' => 'http://localhost/app',
             'Origin' => 'http://localhost',
         ], $headers));
+    }
+
+    /**
+     * POST checkout with the consent version the form would have shown.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $headers
+     */
+    protected function buy(array $data, array $headers = []): TestResponse
+    {
+        try {
+            $version = app(CheckoutTerms::class)->for($data['product'] ?? null, $data['offer'] ?? null)['consent_version'];
+        } catch (\Throwable) {
+            $version = 'none';
+        }
+
+        return $this->api('POST', 'checkout', $data + ['consent_version' => $version], $headers);
     }
 
     /**

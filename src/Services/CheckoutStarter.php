@@ -43,19 +43,33 @@ class CheckoutStarter
      * @param  array<string, mixed>  $input
      * @return array{payment: Payment, checkout_url: string, reused: bool}
      */
-    public function start(User $user, ?Team $team, array $input, ?string $idempotencyKey = null): array
+    public function start(User $user, ?Team $team, array $input, ?string $idempotencyKey = null, ?array $terms = null): array
     {
         $key = $this->key($user, $team, $input, $idempotencyKey);
+        $fingerprint = $this->fingerprint($input);
         $ttl = max(1, (int) config('app-api.checkout.idempotency_seconds', 300));
+        $terms ??= app(CheckoutTerms::class)->for($input['product'] ?? null, $input['offer'] ?? null);
 
-        return Cache::lock($key.':lock', 30)->block(15, function () use ($key, $ttl, $user, $team, $input) {
+        return Cache::lock($key.':lock', 30)->block(15, function () use ($key, $fingerprint, $ttl, $user, $team, $input, $terms) {
+            $cached = Cache::get($key);
+
+            // One key, one request: the same key with another body is a
+            // client bug, not a second purchase and not the first one again.
+            if (is_array($cached) && ($cached['input'] ?? $fingerprint) !== $fingerprint) {
+                throw ApiException::make('idempotency_key_reused', 422);
+            }
+
             if ($previous = $this->previous($key)) {
                 return $previous + ['reused' => true];
             }
 
-            $started = $this->begin($user, $team, $input);
+            $started = $this->begin($user, $team, $input, $terms);
 
-            Cache::put($key, ['payment' => (int) $started['payment']->getKey(), 'checkout_url' => $started['checkout_url']], $ttl);
+            Cache::put($key, [
+                'payment' => (int) $started['payment']->getKey(),
+                'checkout_url' => $started['checkout_url'],
+                'input' => $fingerprint,
+            ], $ttl);
 
             return $started + ['reused' => false];
         });
@@ -63,9 +77,10 @@ class CheckoutStarter
 
     /**
      * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $terms
      * @return array{payment: Payment, checkout_url: string}
      */
-    protected function begin(User $user, ?Team $team, array $input): array
+    protected function begin(User $user, ?Team $team, array $input, array $terms): array
     {
         if (($input['for'] ?? 'user') === 'team') {
             if ($team === null) {
@@ -82,10 +97,17 @@ class CheckoutStarter
         }
 
         $basket = null;
-        $details = ['meta' => ['app_api_user_id' => (string) $user->id()]];
+        $details = ['meta' => ['app_api_user_id' => (string) $user->id(), 'consent_version' => $terms['consent_version']]];
+
+        // The wording the form showed, frozen with the payment, and only when
+        // there is one (digital content). Both columns or neither.
+        if (is_string($terms['consent_text'] ?? null) && $terms['consent_text'] !== '') {
+            $details['consent_at'] = now();
+            $details['consent_text'] = $terms['consent_text'];
+        }
 
         if (filled($input['offer'] ?? null)) {
-            [$handles, $basket, $details] = $this->fromOffer((string) $input['offer'], $input, $details);
+            [$handles, $basket, $details] = $this->fromOffer((string) $input['offer'], $input, $details, $terms);
         } else {
             $handle = (string) ($input['product'] ?? '');
 
@@ -94,8 +116,6 @@ class CheckoutStarter
             }
 
             $handles = [$handle];
-            $details['consent_at'] = now();
-            $details['consent_text'] = (string) __('statamic-payments::messages.order_consent');
         }
 
         $buyer = array_filter([
@@ -161,9 +181,10 @@ class CheckoutStarter
     /**
      * @param  array<string, mixed>  $input
      * @param  array<string, mixed>  $details
+     * @param  array<string, mixed>  $terms
      * @return array{0: list<string>, 1: Basket, 2: array<string, mixed>}
      */
-    protected function fromOffer(string $handle, array $input, array $details): array
+    protected function fromOffer(string $handle, array $input, array $details, array $terms): array
     {
         if (! class_exists(Offer::class)) {
             throw ApiException::make('product_not_found', 404, 'offer');
@@ -203,16 +224,10 @@ class CheckoutStarter
             throw $e;
         }
 
-        // The terms the buyer agreed to, frozen onto the payment as the funnel
-        // does: the waiver's wording with its version, and the whole terms.
-        $terms = $offer->withdrawalTerms();
-        $version = trim((string) ($terms['version'] ?? ''));
-        $text = (string) ($terms['waiver_text'] ?? '');
-
-        $details['consent_at'] = now();
-        $details['consent_text'] = ($text !== '' ? $text : (string) __('statamic-payments::messages.order_consent')).($version !== '' ? ' ['.$version.']' : '');
+        // The whole withdrawal terms the form showed (digital offers), and the
+        // access window, frozen onto the payment as the funnel does.
         $details['meta'] = array_merge($details['meta'], $basket->paymentMeta(), array_filter([
-            'withdrawal' => $terms,
+            'withdrawal' => $terms['withdrawal'] ?? null,
             'access' => $offer->accessWindow(),
         ]));
 
@@ -252,10 +267,20 @@ class CheckoutStarter
             return 'app-api:checkout:'.hash('sha256', $scope.'|key|'.trim($idempotencyKey));
         }
 
+        return 'app-api:checkout:'.hash('sha256', $scope.'|'.$this->fingerprint($input));
+    }
+
+    /**
+     * What makes two requests the same purchase.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    protected function fingerprint(array $input): string
+    {
         $relevant = array_intersect_key($input, array_flip(['product', 'offer', 'for', 'bumps', 'coupon', 'pricing_option', 'amount', 'country']));
         ksort($relevant);
 
-        return 'app-api:checkout:'.hash('sha256', $scope.'|'.json_encode($relevant));
+        return hash('sha256', (string) json_encode($relevant));
     }
 
     protected function returnUrl(mixed $path): ?string

@@ -24,6 +24,7 @@ class ErrorCodes
         'server_error' => 500,
         'invalid_signature' => 403,
         'request_refused' => 422,
+        'stateful_origin_required' => 400,
 
         // Session
         'invalid_credentials' => 422,
@@ -35,6 +36,8 @@ class ErrorCodes
         'reset_failed' => 422,
         'elevation_required' => 423,
         'code_unavailable' => 422,
+        'two_factor_setup_required' => 403,
+        'two_factor_already_enabled' => 409,
 
         // Account
         'already_verified' => 409,
@@ -70,6 +73,8 @@ class ErrorCodes
 
         // Checkout
         'consent_required' => 422,
+        'consent_changed' => 409,
+        'idempotency_key_reused' => 422,
         'product_not_found' => 404,
         'offer_unavailable' => 409,
         'sold_out' => 409,
@@ -79,6 +84,8 @@ class ErrorCodes
 
         // Tokens
         'tokens_unsupported' => 409,
+        'tokens_disabled' => 401,
+        'token_ability_missing' => 403,
     ];
 
     public static function status(string $code): int

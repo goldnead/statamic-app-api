@@ -1,7 +1,10 @@
 <?php
 
+use Goldnead\AppApi\Http\Middleware\CheckTokenAbility;
 use Goldnead\AppApi\Http\Middleware\PrepareRequest;
 use Goldnead\AppApi\Http\Middleware\RequireElevation;
+use Goldnead\AppApi\Http\Middleware\RequireSession;
+use Goldnead\AppApi\Http\Middleware\RequireTwoFactorSetup;
 use Goldnead\AppApi\Http\Middleware\ResolveTeam;
 use Goldnead\AppApi\Support\Endpoints;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -41,8 +44,17 @@ Route::prefix(trim((string) config('app-api.routes.prefix', 'api/app'), '/'))
                 $middleware[] = 'throttle:'.$endpoint['throttle'];
             }
 
+            if ($endpoint['session']) {
+                $middleware[] = RequireSession::class;
+            }
+
             if ($endpoint['auth']) {
                 $middleware[] = 'auth:'.$guard;
+                $middleware[] = CheckTokenAbility::class.':'.$endpoint['area'];
+
+                if (! $endpoint['setup']) {
+                    $middleware[] = RequireTwoFactorSetup::class;
+                }
             }
 
             if ($endpoint['elevated']) {

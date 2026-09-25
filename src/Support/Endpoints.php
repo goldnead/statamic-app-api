@@ -14,6 +14,7 @@ use Goldnead\AppApi\Http\Controllers\Session\RegisterController;
 use Goldnead\AppApi\Http\Controllers\Session\ResetPasswordController;
 use Goldnead\AppApi\Http\Controllers\Session\SessionController;
 use Goldnead\AppApi\Http\Controllers\Session\TwoFactorController;
+use Goldnead\AppApi\Http\Controllers\Session\TwoFactorSetupController;
 use Goldnead\AppApi\Http\Controllers\TeamController;
 use Goldnead\AppApi\Http\Controllers\TokenController;
 use Statamic\Facades\TwoFactor;
@@ -48,8 +49,13 @@ class Endpoints
             self::make('session', 'GET', 'openapi.json', [MetaController::class, 'openapi'], 'openapi', 'This description, as OpenAPI 3.1.', response: 'OpenApi', when: 'openapi'),
 
             // Session: Statamic's own login, 2FA, passkeys, registration ------
-            self::make('session', 'POST', 'session/login', [LoginController::class, 'login'], 'session.login', "Sign in with Statamic's login. Answers `two_factor: true` when a code is needed next.", body: ['email' => 'string', 'password' => 'string', 'remember' => '?boolean'], response: 'LoginResult', errors: ['validation_failed', 'invalid_credentials', 'passkey_required', 'too_many_attempts'], throttle: 'statamic.auth'),
+            self::make('session', 'POST', 'session/login', [LoginController::class, 'login'], 'session.login', "Sign in with Statamic's login. Answers two_factor: true when a code is needed next, and two_factor_setup_required: true when the user must set up two-factor authentication before anything else.", body: ['email' => 'string', 'password' => 'string', 'remember' => '?boolean'], response: 'LoginResult', errors: ['validation_failed', 'invalid_credentials', 'passkey_required', 'too_many_attempts', 'stateful_origin_required'], throttle: 'statamic.auth'),
             self::make('session', 'POST', 'session/two-factor', [TwoFactorController::class, 'store'], 'session.two-factor', 'Second step of a login with two-factor authentication: a code from the app or a recovery code.', body: ['code' => '?string', 'recovery_code' => '?string'], response: 'UserEnvelope', errors: ['validation_failed', 'too_many_requests'], when: 'two_factor'),
+            self::make('session', 'POST', 'session/two-factor/setup', [TwoFactorSetupController::class, 'start'], 'session.two-factor.setup', 'Start setting up two-factor authentication through Statamic: the secret, a QR code (SVG) and where to confirm.', response: 'TwoFactorSetup', auth: true, elevated: true, errors: ['two_factor_already_enabled', 'elevation_required'], when: 'two_factor'),
+            self::make('session', 'POST', 'session/two-factor/confirm', [TwoFactorSetupController::class, 'confirmCode'], 'session.two-factor.confirm', 'Confirm the setup with a code from the app. Answers the recovery codes.', body: ['code' => 'string'], response: 'RecoveryCodes', auth: true, elevated: true, errors: ['validation_failed', 'elevation_required'], throttle: 'two-factor', when: 'two_factor'),
+            self::make('session', 'DELETE', 'session/two-factor', [TwoFactorSetupController::class, 'turnOff'], 'session.two-factor.disable', 'Switch two-factor authentication off.', response: 'TwoFactorOff', auth: true, elevated: true, errors: ['elevation_required'], when: 'two_factor'),
+            self::make('session', 'GET', 'session/two-factor/recovery-codes', [TwoFactorSetupController::class, 'recoveryCodes'], 'session.two-factor.recovery-codes', 'The current recovery codes.', response: 'RecoveryCodes', auth: true, elevated: true, errors: ['elevation_required'], when: 'two_factor'),
+            self::make('session', 'POST', 'session/two-factor/recovery-codes', [TwoFactorSetupController::class, 'regenerateRecoveryCodes'], 'session.two-factor.recovery-codes.regenerate', 'New recovery codes; the old ones stop working.', response: 'RecoveryCodes', auth: true, elevated: true, errors: ['elevation_required'], when: 'two_factor'),
             self::make('session', 'GET', 'session/passkey/options', [PasskeyController::class, 'options'], 'session.passkey.options', 'WebAuthn assertion options for a passkey login.', response: 'WebAuthnOptions', throttle: 'statamic.passkeys'),
             self::make('session', 'POST', 'session/passkey', [PasskeyController::class, 'login'], 'session.passkey', 'Sign in with a passkey (the WebAuthn assertion).', body: ['id' => 'string', 'rawId' => 'string', 'response' => 'object', 'type' => 'string'], response: 'UserEnvelope', errors: ['validation_failed', 'invalid_passkey'], throttle: 'statamic.passkeys'),
             self::make('session', 'POST', 'session/register', [RegisterController::class, 'register'], 'session.register', "Create an account through Statamic's registration and sign in. Fields of the user blueprint are accepted as well.", body: ['email' => 'string', 'password' => 'string', 'password_confirmation' => 'string', 'name' => '?string'], response: 'UserEnvelope', status: 201, errors: ['validation_failed', 'registration_refused'], throttle: 'statamic.auth', when: 'registration'),
@@ -59,7 +65,7 @@ class Endpoints
             self::make('session', 'POST', 'password/reset', [ResetPasswordController::class, 'resetWithToken'], 'password.reset', 'Set a new password with the token from the mail.', body: ['token' => 'string', 'email' => 'string', 'password' => 'string', 'password_confirmation' => 'string'], response: 'Message', errors: ['validation_failed', 'reset_failed'], throttle: 'statamic.auth'),
             self::make('session', 'GET', 'session/elevation', [ElevationController::class, 'status'], 'session.elevation', "State of Statamic's elevated session and how this user confirms.", response: 'Elevation', auth: true),
             self::make('session', 'POST', 'session/elevation', [ElevationController::class, 'confirmJson'], 'session.elevation.confirm', 'Confirm with the password, the mailed code or a passkey assertion. Opens the elevated session.', body: ['password' => '?string', 'verification_code' => '?string', 'id' => '?string', 'rawId' => '?string', 'response' => '?object', 'type' => '?string'], response: 'Elevation', auth: true, errors: ['validation_failed'], throttle: 'statamic.auth', when: 'elevation'),
-            self::make('session', 'POST', 'session/elevation/code', [ElevationController::class, 'sendCode'], 'session.elevation.code', 'Mail a confirmation code (accounts without a password).', status: 202, response: 'Message', auth: true, errors: ['validation_failed'], throttle: 'statamic.auth', when: 'elevation'),
+            self::make('session', 'POST', 'session/elevation/code', [ElevationController::class, 'sendCode'], 'session.elevation.code', 'Mail a confirmation code (accounts without a password).', status: 202, response: 'Message', auth: true, errors: ['validation_failed', 'code_unavailable'], throttle: 'send-elevated-session-code', when: 'elevation'),
             self::make('session', 'GET', 'session/elevation/passkey-options', [ElevationController::class, 'options'], 'session.elevation.passkey-options', 'WebAuthn assertion options to confirm with a passkey.', response: 'WebAuthnOptions', auth: true, throttle: 'statamic.passkeys', when: 'elevation'),
 
             // Account (statamic-accounts) -----------------------------------
@@ -96,7 +102,8 @@ class Endpoints
             self::make('access', 'GET', 'access/quotas/{key}', [AccessController::class, 'quota'], 'access.quota', 'One quota: limit, used, remaining, period, for the user and the current team.', query: ['current' => '?integer'], response: 'QuotaAccess', auth: true, team: true, errors: ['not_member']),
 
             // Checkout and portal (statamic-payments, statamic-offers) --------
-            self::make('checkout', 'POST', 'checkout', [CheckoutController::class, 'start'], 'checkout', 'Start a purchase and answer with the provider URL to send the buyer to. The same request twice answers with the same checkout.', body: ['product' => '?string', 'offer' => '?string', 'for' => '?string', 'bumps' => '?array', 'coupon' => '?string', 'pricing_option' => '?string', 'amount' => '?integer', 'country' => '?string', 'confirmed' => 'boolean', 'return_url' => '?string'], response: 'Checkout', status: 201, auth: true, team: true, errors: ['validation_failed', 'consent_required', 'not_member', 'forbidden', 'product_not_found', 'offer_unavailable', 'sold_out', 'checkout_refused', 'provider_unavailable'], throttle: 'app-api-checkout'),
+            self::make('checkout', 'GET', 'checkout/terms', [CheckoutController::class, 'terms'], 'checkout.terms', 'What the order form must show before the order button: the consent text (for digital content the waiver of the right of withdrawal, otherwise none), its version, and the button label.', query: ['product' => '?string', 'offer' => '?string'], response: 'CheckoutTerms', auth: true, errors: ['validation_failed', 'product_not_found']),
+            self::make('checkout', 'POST', 'checkout', [CheckoutController::class, 'start'], 'checkout', 'Start a purchase and answer with the provider URL to send the buyer to. The same request twice answers with the same checkout.', body: ['product' => '?string', 'offer' => '?string', 'for' => '?string', 'bumps' => '?array', 'coupon' => '?string', 'pricing_option' => '?string', 'amount' => '?integer', 'country' => '?string', 'confirmed' => 'boolean', 'consent_version' => 'string', 'return_url' => '?string'], response: 'Checkout', status: 201, auth: true, team: true, errors: ['validation_failed', 'consent_required', 'consent_changed', 'idempotency_key_reused', 'not_member', 'forbidden', 'product_not_found', 'offer_unavailable', 'sold_out', 'checkout_refused', 'provider_unavailable'], throttle: 'app-api-checkout', description: 'The order form (§ 312j BGB): the button that sends this request must be labelled "'.self::ORDER_BUTTON.'" (or an equally unambiguous wording), the consent text from GET checkout/terms must stand next to a checkbox the buyer ticks, `confirmed` is that checkbox, and `consent_version` the version the form showed. A different version is 409 consent_changed with the current wording in details.'),
             self::make('checkout', 'GET', 'checkout/{payment}', [CheckoutController::class, 'show'], 'checkout.show', 'The state of a checkout this user started (after the return from the provider).', response: 'CheckoutStatus', auth: true, errors: ['not_found']),
             self::make('checkout', 'POST', 'portal', [CheckoutController::class, 'portal'], 'portal', 'A short-lived link into the customer portal of statamic-payments for the confirmed address of the user.', response: 'PortalLink', auth: true, errors: ['email_unverified', 'portal_disabled']),
 
@@ -160,7 +167,30 @@ class Endpoints
         array $errors = [],
         ?string $throttle = null,
         ?string $when = null,
+        ?string $description = null,
     ): array {
-        return compact('area', 'method', 'uri', 'action', 'name', 'summary', 'body', 'query', 'response', 'status', 'auth', 'elevated', 'team', 'errors', 'throttle', 'when');
+        // Lives in the session (Statamic's login, 2FA, passkeys, the elevated
+        // session): 400 `stateful_origin_required` without one.
+        $session = in_array($name, self::SESSION, true) || str_starts_with($name, 'session.two-factor.');
+
+        // Reachable while enforced two-factor authentication is not set up.
+        $setup = in_array($name, self::SETUP_ALLOWED, true) || str_starts_with($name, 'session.');
+
+        return compact('area', 'method', 'uri', 'action', 'name', 'summary', 'body', 'query', 'response', 'status', 'auth', 'elevated', 'team', 'errors', 'throttle', 'when', 'description', 'session', 'setup');
     }
+
+    /** @var list<string> */
+    public const SESSION = [
+        'session.login', 'session.two-factor', 'session.passkey.options', 'session.passkey',
+        'session.register', 'password.forgot', 'session.elevation.confirm', 'session.elevation.code',
+        'session.elevation.passkey-options',
+    ];
+
+    /** @var list<string> */
+    public const SETUP_ALLOWED = ['meta', 'openapi', 'me'];
+
+    /**
+     * § 312j Abs. 3 BGB, for the OpenAPI description of the checkout.
+     */
+    public const ORDER_BUTTON = 'zahlungspflichtig bestellen';
 }

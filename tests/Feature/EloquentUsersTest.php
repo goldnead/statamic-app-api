@@ -132,6 +132,33 @@ class EloquentUsersTest extends TestCase
     }
 
     #[Test]
+    public function a_token_only_reaches_the_areas_its_abilities_name(): void
+    {
+        $model = $this->eloquentUser();
+        $plain = $model->createToken('Leser', ['teams:read'])->plainTextToken;
+        $bearer = ['Authorization' => 'Bearer '.$plain];
+
+        $this->getJson('/api/app/teams', $bearer)->assertOk();
+        $this->assertError($this->postJson('/api/app/teams', ['name' => 'X'], $bearer), 403, 'token_ability_missing')
+            ->assertJsonPath('error.details.ability', 'teams:write');
+        $this->assertError($this->getJson('/api/app/account', $bearer), 403, 'token_ability_missing');
+
+        $all = $model->createToken('Alles')->plainTextToken;
+        $this->signOut(); // the request guard remembers the previous token
+        $this->getJson('/api/app/account', ['Authorization' => 'Bearer '.$all])->assertOk();
+    }
+
+    #[Test]
+    public function with_tokens_switched_off_a_token_is_refused(): void
+    {
+        $plain = $this->eloquentUser()->createToken('Alt')->plainTextToken;
+
+        config(['app-api.areas.tokens' => false]);
+
+        $this->assertError($this->getJson('/api/app/me', ['Authorization' => 'Bearer '.$plain]), 401, 'tokens_disabled');
+    }
+
+    #[Test]
     public function a_foreign_token_cannot_be_revoked(): void
     {
         $other = $this->eloquentUser('fremd@example.com');

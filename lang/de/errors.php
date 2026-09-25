@@ -51,4 +51,11 @@ return [
     'portal_disabled' => 'Das Kundenportal ist ausgeschaltet.',
 
     'tokens_unsupported' => 'Dieses Konto kann keine Zugangstoken haben.',
+    'tokens_disabled' => 'Zugangstoken sind auf dieser Site ausgeschaltet.',
+    'token_ability_missing' => 'Dieses Zugangstoken darf das nicht.',
+    'stateful_origin_required' => 'Das braucht eine Sitzung. Schick die Anfrage von einer Domain aus sanctum.stateful.',
+    'two_factor_setup_required' => 'Bitte richte zuerst die Zwei-Faktor-Anmeldung ein.',
+    'two_factor_already_enabled' => 'Die Zwei-Faktor-Anmeldung ist schon eingerichtet.',
+    'consent_changed' => 'Die Bestellbedingungen haben sich geändert. Bitte bestätige sie noch einmal.',
+    'idempotency_key_reused' => 'Dieser Idempotency-Key gehört schon zu einer anderen Anfrage.',
 ];

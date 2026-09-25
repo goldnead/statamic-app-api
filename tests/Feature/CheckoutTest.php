@@ -18,7 +18,7 @@ class CheckoutTest extends TestCase
     #[Test]
     public function the_checkout_endpoints_need_a_session(): void
     {
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true]), 401, 'unauthenticated');
+        $this->assertError($this->buy(['product' => 'lifetime', 'confirmed' => true]), 401, 'unauthenticated');
         $this->assertError($this->api('GET', 'checkout/1'), 401, 'unauthenticated');
         $this->assertError($this->api('POST', 'portal'), 401, 'unauthenticated');
     }
@@ -28,7 +28,7 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $response = $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true])
+        $response = $this->buy(['product' => 'lifetime', 'confirmed' => true])
             ->assertCreated()
             ->assertJsonPath('checkout_url', 'https://pay.test/checkout/1')
             ->assertJsonPath('reused', false)
@@ -46,8 +46,8 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $first = $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true])->assertCreated();
-        $second = $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true])->assertOk();
+        $first = $this->buy(['product' => 'lifetime', 'confirmed' => true])->assertCreated();
+        $second = $this->buy(['product' => 'lifetime', 'confirmed' => true])->assertOk();
 
         $this->assertSame($first->json('checkout_url'), $second->json('checkout_url'));
         $this->assertSame($first->json('payment.id'), $second->json('payment.id'));
@@ -61,10 +61,10 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $id = $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true])->json('payment.id');
+        $id = $this->buy(['product' => 'lifetime', 'confirmed' => true])->json('payment.id');
         Payment::whereKey($id)->update(['status' => Payment::STATUS_PAID]);
 
-        $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true])->assertCreated()->assertJsonPath('reused', false);
+        $this->buy(['product' => 'lifetime', 'confirmed' => true])->assertCreated()->assertJsonPath('reused', false);
         $this->assertSame(2, Payment::count());
     }
 
@@ -73,9 +73,9 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])->assertCreated();
-        $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])->assertOk();
-        $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'b'])->assertCreated();
+        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])->assertCreated();
+        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])->assertOk();
+        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'b'])->assertCreated();
 
         $this->assertSame(2, Payment::count());
     }
@@ -85,7 +85,7 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'lifetime']), 422, 'consent_required')
+        $this->assertError($this->buy(['product' => 'lifetime']), 422, 'consent_required')
             ->assertJsonPath('error.field', 'confirmed');
 
         $this->assertSame(0, Payment::count());
@@ -96,7 +96,7 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'gibt-es-nicht', 'confirmed' => true]), 404, 'product_not_found');
+        $this->assertError($this->buy(['product' => 'gibt-es-nicht', 'confirmed' => true]), 404, 'product_not_found');
     }
 
     #[Test]
@@ -105,7 +105,7 @@ class CheckoutTest extends TestCase
         $this->gateway->fail = true;
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true]), 503, 'provider_unavailable');
+        $this->assertError($this->buy(['product' => 'lifetime', 'confirmed' => true]), 503, 'provider_unavailable');
     }
 
     #[Test]
@@ -116,7 +116,7 @@ class CheckoutTest extends TestCase
         Teams::update($team, ['billing' => ['company' => 'Kammerchor e.V.', 'email' => 'kasse@chor.test', 'line1' => 'Weg 1', 'city' => 'Köln', 'country' => 'DE']]);
         $this->actingAs($owner);
 
-        $response = $this->api('POST', 'checkout', ['product' => 'chortarif', 'for' => 'team', 'confirmed' => true], ['X-Team-ID' => (string) $team->id])
+        $response = $this->buy(['product' => 'chortarif', 'for' => 'team', 'confirmed' => true], ['X-Team-ID' => (string) $team->id])
             ->assertCreated()
             ->assertJsonPath('payment.team_id', $team->id);
 
@@ -133,7 +133,7 @@ class CheckoutTest extends TestCase
         Teams::addMember($team, $member);
         $this->actingAs($member);
 
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'chortarif', 'for' => 'team', 'confirmed' => true], ['X-Team-ID' => (string) $team->id]), 403, 'forbidden');
+        $this->assertError($this->buy(['product' => 'chortarif', 'for' => 'team', 'confirmed' => true], ['X-Team-ID' => (string) $team->id]), 403, 'forbidden');
         $this->assertSame(0, Payment::count());
     }
 
@@ -143,8 +143,8 @@ class CheckoutTest extends TestCase
         $team = Teams::create('Anderer Chor', $this->makeUser('owner@example.com'));
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'chortarif', 'for' => 'team', 'confirmed' => true], ['X-Team-ID' => (string) $team->id]), 403, 'not_member');
-        $this->assertError($this->api('POST', 'checkout', ['product' => 'chortarif', 'for' => 'team', 'confirmed' => true]), 422, 'team_required');
+        $this->assertError($this->buy(['product' => 'chortarif', 'for' => 'team', 'confirmed' => true], ['X-Team-ID' => (string) $team->id]), 403, 'not_member');
+        $this->assertError($this->buy(['product' => 'chortarif', 'for' => 'team', 'confirmed' => true]), 422, 'team_required');
     }
 
     #[Test]
@@ -152,7 +152,7 @@ class CheckoutTest extends TestCase
     {
         $user = $this->makeUser('sina@example.com');
         $this->actingAs($user);
-        $id = $this->api('POST', 'checkout', ['product' => 'lifetime', 'confirmed' => true])->json('payment.id');
+        $id = $this->buy(['product' => 'lifetime', 'confirmed' => true])->json('payment.id');
 
         $this->api('GET', 'checkout/'.$id)->assertOk()->assertJsonPath('payment.id', $id)->assertJsonPath('payment.paid', false);
 
@@ -166,7 +166,7 @@ class CheckoutTest extends TestCase
         Offer::create(['handle' => 'lifetime-50', 'name' => 'Lifetime', 'product' => 'lifetime', 'amount_cent' => 7900, 'quantity_limit' => 50]);
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $response = $this->api('POST', 'checkout', ['offer' => 'lifetime-50', 'confirmed' => true])->assertCreated();
+        $response = $this->buy(['offer' => 'lifetime-50', 'confirmed' => true])->assertCreated();
 
         $payment = Payment::find($response->json('payment.id'));
         $this->assertStringStartsWith('offer:lifetime-50', (string) $payment->product);
@@ -179,8 +179,8 @@ class CheckoutTest extends TestCase
         Offer::create(['handle' => 'lifetime-50', 'name' => 'Lifetime', 'product' => 'lifetime', 'amount_cent' => 7900, 'quantity_limit' => 0]);
         $this->actingAs($this->makeUser('sina@example.com'));
 
-        $this->assertError($this->api('POST', 'checkout', ['offer' => 'lifetime-50', 'confirmed' => true]), 409, 'sold_out');
-        $this->assertError($this->api('POST', 'checkout', ['offer' => 'nicht-da', 'confirmed' => true]), 404, 'product_not_found');
+        $this->assertError($this->buy(['offer' => 'lifetime-50', 'confirmed' => true]), 409, 'sold_out');
+        $this->assertError($this->buy(['offer' => 'nicht-da', 'confirmed' => true]), 404, 'product_not_found');
     }
 
     #[Test]

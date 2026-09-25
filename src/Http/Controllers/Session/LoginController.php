@@ -8,6 +8,7 @@ use Goldnead\AppApi\Support\Users;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Statamic\Facades\TwoFactor;
 use Statamic\Http\Controllers\User\LoginController as CoreLoginController;
 use Statamic\Http\Requests\UserLoginRequest;
 
@@ -34,12 +35,20 @@ class LoginController extends CoreLoginController
         }
 
         if ($response instanceof JsonResponse && ($response->getData(true)['two_factor'] ?? false) === true) {
-            return new JsonResponse(['two_factor' => true, 'user' => null]);
+            return new JsonResponse(['two_factor' => true, 'two_factor_setup_required' => false, 'user' => null]);
         }
+
+        $user = Users::current($request);
 
         return new JsonResponse([
             'two_factor' => false,
-            'user' => UserResource::make(Users::current($request)),
+            // Statamic's enforced 2FA (`two_factor_enforced_roles`): until it is
+            // set up, every endpoint but session, `me`, logout and the setup
+            // answers 403 `two_factor_setup_required`.
+            'two_factor_setup_required' => TwoFactor::enabled()
+                && $user->isTwoFactorAuthenticationRequired()
+                && ! $user->hasEnabledTwoFactorAuthentication(),
+            'user' => UserResource::make($user),
         ]);
     }
 
