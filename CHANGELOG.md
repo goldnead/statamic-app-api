@@ -18,6 +18,8 @@
 - Enforced two-factor authentication holds for the API (403 `two_factor_setup_required`), with setup endpoints over Statamic's own actions.
 - `GET checkout/terms` and `consent_version`: the consent text only for digital content, the version checked (409 `consent_changed`), `confirmed` strictly accepted, the order button label in the OpenAPI description.
 - Token abilities per area (`<area>:read`/`write`); tokens refused while `areas.tokens` is off.
+- On a site's own routes: `app-api.json` applies the enforced two-factor rule and the tokens switch; new aliases `app-api.2fa` and `app-api.ability:<area>`.
+- `consent_version` is `<source version>+<hash of the wording shown>`, so a changed wording under an unchanged offer version is caught.
 
 ### Fixed
 

@@ -3,9 +3,11 @@
 namespace Goldnead\AppApi;
 
 use Goldnead\AppApi\Http\ErrorRenderer;
+use Goldnead\AppApi\Http\Middleware\CheckTokenAbility;
 use Goldnead\AppApi\Http\Middleware\PrepareRequest;
 use Goldnead\AppApi\Http\Middleware\RequireEntitlement;
 use Goldnead\AppApi\Http\Middleware\RequireQuota;
+use Goldnead\AppApi\Http\Middleware\RequireTwoFactorSetup;
 use Goldnead\AppApi\Http\Middleware\ResolveTeam;
 use Goldnead\AppApi\Integrations\ActivityRecorder;
 use Goldnead\AppApi\Integrations\Automations\AutomationsBridge;
@@ -117,6 +119,8 @@ class ServiceProvider extends AddonServiceProvider
         $router->aliasMiddleware('app-api.quota', RequireQuota::class);
         $router->aliasMiddleware('app-api.team', ResolveTeam::class);
         $router->aliasMiddleware('app-api.json', PrepareRequest::class);
+        $router->aliasMiddleware('app-api.2fa', RequireTwoFactorSetup::class);
+        $router->aliasMiddleware('app-api.ability', CheckTokenAbility::class);
 
         return $this;
     }

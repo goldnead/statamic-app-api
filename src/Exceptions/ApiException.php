@@ -2,6 +2,8 @@
 
 namespace Goldnead\AppApi\Exceptions;
 
+use Goldnead\AppApi\Http\ErrorRenderer;
+use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
 /**
@@ -39,5 +41,14 @@ class ApiException extends RuntimeException
     public static function notFound(): self
     {
         return new self('not_found', 404);
+    }
+
+    /**
+     * Renders itself in the one error shape, also on a site's own routes
+     * that carry one of this addon's middlewares but not `app-api.json`.
+     */
+    public function render(): JsonResponse
+    {
+        return ErrorRenderer::respond($this->status, $this->errorCode, $this->getMessage(), $this->field, $this->details);
     }
 }

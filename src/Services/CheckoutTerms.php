@@ -67,7 +67,11 @@ class CheckoutTerms
             'offer' => filled($offer) ? (string) $offer : null,
             'digital' => $digital,
             'consent_text' => $text,
-            'consent_version' => $version ?? ($text === null ? 'none' : substr(hash('sha256', $text), 0, 12)),
+            // The source's version and a hash over the wording actually shown:
+            // a wording that changes under an unchanged version (an offer
+            // without its own waiver falls back to payments' text) is still
+            // a new version.
+            'consent_version' => $text === null ? 'none' : ($version ?? 'text').'+'.substr(hash('sha256', $text), 0, 12),
             'button_label' => Endpoints::ORDER_BUTTON,
             'withdrawal' => $withdrawal,
         ];

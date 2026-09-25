@@ -30,7 +30,7 @@ $guard = (string) config('app-api.routes.guard', 'sanctum');
 
 $stack = array_merge(
     (array) config('app-api.routes.middleware', []),
-    [PrepareRequest::class, AuthGuard::class, 'throttle:app-api', SubstituteBindings::class],
+    [PrepareRequest::class.':api', AuthGuard::class, 'throttle:app-api', SubstituteBindings::class],
 );
 
 Route::prefix(trim((string) config('app-api.routes.prefix', 'api/app'), '/'))

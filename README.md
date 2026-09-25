@@ -228,14 +228,23 @@ creating a token answer 423 until the user confirms: ask for the password (or, f
 ## For a site's own routes
 
 ```php
-Route::middleware(['auth:sanctum', 'app-api.json', 'app-api.team', 'app-api.entitled:pro,chor'])
+Route::middleware(['auth:sanctum', 'app-api.json', 'app-api.ability:scores', 'app-api.team', 'app-api.entitled:pro,chor'])
     ->get('/api/scores/{score}', …);          // 402 payment_required without access
 
-Route::middleware(['auth:sanctum', 'app-api.json', 'app-api.team', 'app-api.quota:analyses'])
+Route::middleware(['auth:sanctum', 'app-api.json', 'app-api.ability:analyses', 'app-api.team', 'app-api.quota:analyses'])
     ->post('/api/analyses', …);               // 429 quota_exceeded when nothing is left
 ```
 
-`app-api.json` gives the route the error shape, `app-api.team` reads the team header.
+Order matters: the auth middleware first, then `app-api.json`.
+
+- `app-api.json` gives the route the error shape and, once somebody is signed in, applies the two
+  rules that hold everywhere: Statamic's enforced two-factor authentication (403
+  `two_factor_setup_required`) and no token while `areas.tokens` is off (401 `tokens_disabled`).
+- `app-api.ability:<area>` checks a token's ability, `<area>:read` for GET and `<area>:write` for
+  the rest. A session passes. Name your own areas (`scores:read`) and allow them in
+  `tokens.abilities`.
+- `app-api.2fa` is the two-factor rule alone, for a route that does not want `app-api.json`.
+- `app-api.team` reads the team header.
 
 ## Control Panel
 

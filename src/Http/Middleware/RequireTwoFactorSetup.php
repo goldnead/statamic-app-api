@@ -6,6 +6,7 @@ use Closure;
 use Goldnead\AppApi\Exceptions\ApiException;
 use Goldnead\AppApi\Support\Users;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Statamic\Facades\TwoFactor;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,12 +18,20 @@ use Symfony\Component\HttpFoundation\Response;
  * group and redirects to a setup page. The API never passes that group, so
  * without this a user who must set up 2FA could use every endpoint. Same
  * condition as core (also: not while an admin impersonates), answered as
- * 403 `two_factor_setup_required`. Session, `me`, logout and the setup
- * endpoints themselves do not carry this middleware.
+ * 403 `two_factor_setup_required`. Under the prefix, session, `me`, logout
+ * and the setup endpoints do not carry it. On a site's own routes it comes
+ * with `app-api.json`, or alone as `app-api.2fa`.
  */
 class RequireTwoFactorSetup
 {
     public function handle(Request $request, Closure $next): Response
+    {
+        self::check($request);
+
+        return $next($request);
+    }
+
+    public static function check(Request $request): void
     {
         $user = Users::of($request->user());
 
@@ -33,11 +42,11 @@ class RequireTwoFactorSetup
             && ! $user->hasEnabledTwoFactorAuthentication()
             && ! ($request->hasSession() && $request->session()->has('statamic_impersonated_by'))
         ) {
-            throw ApiException::make('two_factor_setup_required', 403, null, [
-                'setup_url' => url(trim((string) config('app-api.routes.prefix', 'api/app'), '/').'/session/two-factor/setup'),
-            ]);
-        }
+            $route = config('app-api.routes.name', 'app-api.').'session.two-factor.setup';
 
-        return $next($request);
+            throw ApiException::make('two_factor_setup_required', 403, null, array_filter([
+                'setup_url' => Route::has($route) ? route($route) : null,
+            ]));
+        }
     }
 }

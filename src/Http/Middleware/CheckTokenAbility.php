@@ -16,21 +16,21 @@ use Symfony\Component\HttpFoundation\Response;
  * With `app-api.areas.tokens` off, a token is refused outright (401
  * `tokens_disabled`): switching tokens off must also switch off the ones
  * handed out before.
+ *
+ * On a site's own routes: `app-api.ability:<area>`, after the auth
+ * middleware. `app-api.json` applies the `tokens_disabled` rule by itself.
  */
 class CheckTokenAbility
 {
     public function handle(Request $request, Closure $next, string $area): Response
     {
-        $user = $request->user();
-        $token = is_object($user) && method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+        $token = self::token($request);
 
-        if (! $token instanceof PersonalAccessToken) {
+        if ($token === null) {
             return $next($request);
         }
 
-        if (! config('app-api.areas.tokens', false)) {
-            throw ApiException::make('tokens_disabled', 401);
-        }
+        self::refuseDisabledTokens($request);
 
         $ability = self::ability($area, $request->method());
 
@@ -39,6 +39,21 @@ class CheckTokenAbility
         }
 
         return $next($request);
+    }
+
+    public static function refuseDisabledTokens(Request $request): void
+    {
+        if (self::token($request) !== null && ! config('app-api.areas.tokens', false)) {
+            throw ApiException::make('tokens_disabled', 401);
+        }
+    }
+
+    public static function token(Request $request): ?PersonalAccessToken
+    {
+        $user = $request->user();
+        $token = is_object($user) && method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+
+        return $token instanceof PersonalAccessToken ? $token : null;
     }
 
     public static function ability(string $area, string $method): string

@@ -10,6 +10,7 @@ use Goldnead\Teams\Facades\Teams;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use PHPUnit\Framework\Attributes\Test;
@@ -156,6 +157,30 @@ class EloquentUsersTest extends TestCase
         config(['app-api.areas.tokens' => false]);
 
         $this->assertError($this->getJson('/api/app/me', ['Authorization' => 'Bearer '.$plain]), 401, 'tokens_disabled');
+    }
+
+    protected function defineRoutes($router): void
+    {
+        Route::middleware(['auth:sanctum', 'app-api.json', 'app-api.ability:teams'])->get('/site/scores', fn () => ['ok' => true]);
+        Route::middleware(['auth:sanctum', 'app-api.json', 'app-api.ability:teams'])->post('/site/scores', fn () => ['ok' => true]);
+        Route::middleware(['auth:sanctum', 'app-api.json'])->get('/site/plain', fn () => ['ok' => true]);
+    }
+
+    #[Test]
+    public function token_abilities_and_the_tokens_switch_hold_on_a_sites_own_routes(): void
+    {
+        $model = $this->eloquentUser();
+        $bearer = ['Authorization' => 'Bearer '.$model->createToken('Leser', ['teams:read'])->plainTextToken];
+
+        $this->getJson('/site/scores', $bearer)->assertOk();
+        $this->assertError($this->postJson('/site/scores', [], $bearer), 403, 'token_ability_missing');
+        $this->getJson('/site/plain', $bearer)->assertOk();
+
+        config(['app-api.areas.tokens' => false]);
+        $this->signOut();
+
+        // `app-api.json` alone refuses a token once tokens are off.
+        $this->assertError($this->getJson('/site/plain', $bearer), 401, 'tokens_disabled');
     }
 
     #[Test]

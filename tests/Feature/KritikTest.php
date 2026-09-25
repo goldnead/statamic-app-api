@@ -5,6 +5,7 @@ namespace Goldnead\AppApi\Tests\Feature;
 use Goldnead\AppApi\Tests\TestCase;
 use Goldnead\StatamicOffers\Models\Offer;
 use Goldnead\StatamicPayments\Models\Payment;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
@@ -134,9 +135,45 @@ class KritikTest extends TestCase
 
         $terms = $this->terms('offer=lifetime-50');
         $this->assertTrue($terms['digital']);
-        $this->assertSame(Offer::where('handle', 'lifetime-50')->first()->withdrawalTerms()['version'], $terms['consent_version']);
+        $this->assertStringStartsWith(Offer::where('handle', 'lifetime-50')->first()->withdrawalTerms()['version'].'+', $terms['consent_version']);
 
         $this->api('POST', 'checkout', ['offer' => 'lifetime-50', 'confirmed' => true, 'consent_version' => $terms['consent_version']])->assertCreated();
+    }
+
+    #[Test]
+    public function a_changed_wording_under_the_same_offer_version_is_409(): void
+    {
+        // No waiver of its own and none in config: the offer's terms version
+        // stays the same while the wording shown comes from payments.
+        config(['statamic-offers.withdrawal.waiver_text' => null]);
+        Offer::create(['handle' => 'lifetime-50', 'name' => 'Lifetime', 'product' => 'lifetime', 'amount_cent' => 7900]);
+        $this->actingAs($this->makeUser('sina@example.com'));
+
+        $before = $this->terms('offer=lifetime-50');
+        $this->assertMatchesRegularExpression('/^[A-Za-z0-9]+\+[0-9a-f]{12}$/', $before['consent_version']);
+        $offerVersion = Offer::where('handle', 'lifetime-50')->first()->withdrawalTerms()['version'];
+
+        app('translator')->addLines(['messages.order_consent' => 'Neuer Wortlaut.'], app()->getLocale(), 'statamic-payments');
+
+        $this->assertSame($offerVersion, Offer::where('handle', 'lifetime-50')->first()->withdrawalTerms()['version']);
+        $this->assertError($this->api('POST', 'checkout', ['offer' => 'lifetime-50', 'confirmed' => true, 'consent_version' => $before['consent_version']]), 409, 'consent_changed');
+    }
+
+    #[Test]
+    public function the_two_factor_duty_holds_on_a_sites_own_route(): void
+    {
+        config(['statamic.users.two_factor_enforced_roles' => ['*']]);
+        $this->actingAs($this->makeUser('sina@example.com'));
+
+        $this->assertError($this->getJson('/site/scores'), 403, 'two_factor_setup_required')
+            ->assertJsonPath('error.details.setup_url', 'http://localhost/api/app/session/two-factor/setup');
+        $this->assertError($this->getJson('/site/explicit'), 403, 'two_factor_setup_required');
+    }
+
+    protected function defineRoutes($router): void
+    {
+        Route::middleware(['web', 'auth:sanctum', 'app-api.json'])->get('/site/scores', fn () => ['ok' => true]);
+        Route::middleware(['web', 'auth:sanctum', 'app-api.2fa'])->get('/site/explicit', fn () => ['ok' => true]);
     }
 
     #[Test]
