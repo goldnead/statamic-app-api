@@ -56,6 +56,7 @@ class Settings implements ProvidesSettings
                     static::field('checkout.return_url', 'string', ['nullable' => true, 'max' => 255]),
                     static::field('portal.require_verified_email', 'boolean'),
                     static::field('billing.return_url', 'string', ['nullable' => true, 'max' => 255]),
+                    static::field('billing.cancellation_copy_to_team', 'boolean'),
                 ],
             ],
             [

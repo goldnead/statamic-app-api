@@ -52,6 +52,8 @@ class Billing
 
     public const PDF_RENDERER = 'Goldnead\Invoices\Contracts\PdfRenderer';
 
+    public const TEAM_MODEL = 'Goldnead\Teams\Models\Team';
+
     public function __construct(protected User $user) {}
 
     public static function for(User $user): self
@@ -229,6 +231,25 @@ class Billing
         $id = data_get($row->meta, 'team_id');
 
         return is_numeric($id) ? (int) $id : null;
+    }
+
+    /**
+     * The billing address of the team an agreement belongs to, where the
+     * team has one (statamic-teams, `billing.email`). Null for a personal
+     * agreement, a team that is gone, or no address on file.
+     */
+    public function teamBillingEmailOf(Subscription $subscription): ?string
+    {
+        $teamId = $this->teamIdOf($subscription);
+
+        if ($teamId === null || ! class_exists(self::TEAM_MODEL)) {
+            return null;
+        }
+
+        $team = (self::TEAM_MODEL)::query()->find($teamId);
+        $email = $team !== null ? data_get($team->billing, 'email') : null;
+
+        return is_string($email) && trim($email) !== '' ? trim($email) : null;
     }
 
     protected function scopeOf(Payment|Subscription $row): string
@@ -412,9 +433,11 @@ class Billing
             'paid_until_display' => LocalTime::portalDate($paidUntil),
             'cancelled_at' => self::iso($subscription->cancelled_at),
             'cancelled_at_display' => LocalTime::portalDate($subscription->cancelled_at),
-            'ended_label' => ! $subscription->isLive() && ! $subscription->isPaused() && $subscription->cancelled_at
-                ? Anrede::trans('statamic-payments::portal.subscription_ended', ['date' => LocalTime::portalDate($subscription->cancelled_at)])
-                : null,
+            // The end of the contract, not the day it was cancelled: „Gekündigt,
+            // läuft bis …" while the paid term runs, „Beendet am <end of term>"
+            // after it. The portal's own sentence (payments 1.29.2).
+            'ends_at' => self::iso($subscription->endsAt()),
+            'ended_label' => Display::ending($subscription, standalone: true),
             'resumes_at' => self::iso($subscription->resumes_at),
             'resumes_at_display' => LocalTime::portalDate($subscription->resumes_at),
             'remaining' => $remaining,

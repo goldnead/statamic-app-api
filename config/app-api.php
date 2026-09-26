@@ -165,6 +165,11 @@ return [
         // payment method on file. A path on this site; the client may pass
         // `return_url` instead. Null: the start page.
         'return_url' => null,
+
+        // A team's agreement cancelled in the app: the confirmation also goes
+        // to the team's billing address (statamic-teams `billing.email`), when
+        // there is one and it is not the address of the person who cancelled.
+        'cancellation_copy_to_team' => true,
     ],
 
     /*

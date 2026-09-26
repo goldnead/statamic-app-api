@@ -22,6 +22,7 @@ return [
         'checkout_idempotency_seconds' => ['label' => 'Dieselbe Kasse erneut (Sekunden)', 'description' => 'In dieser Zeit antwortet dieselbe Anfrage mit der ersten Kasse statt mit einer zweiten Zahlung.'],
         'checkout_return_url' => ['label' => 'Rückkehrseite nach dem Bezahlen', 'description' => 'Ein Pfad auf dieser Site. Leer: die Seite aus statamic-payments.'],
         'billing_return_url' => ['label' => 'Rückkehrseite nach dem Zahlungsmittelwechsel', 'description' => 'Ein Pfad auf dieser Site, etwa der Reiter Kauf der App. Leer: die Startseite.'],
+        'billing_cancellation_copy_to_team' => ['label' => 'Kündigungsbestätigung auch an das Team', 'description' => 'Kündigt jemand einen Team-Vertrag, geht die Bestätigung zusätzlich an die Rechnungsadresse des Teams, wenn es eine gibt und sie eine andere ist.'],
         'portal_require_verified_email' => ['label' => 'Portal nur mit bestätigter Adresse', 'description' => 'Empfohlen. Ohne das sieht, wer sich mit fremder Adresse registriert, die Bestellungen dieser Person.'],
         'export_link_minutes' => ['label' => 'Export-Link gilt (Minuten)', 'description' => 'Danach wird die Datei gelöscht.'],
         'tokens_expires_after_days' => ['label' => 'Token gelten (Tage)', 'description' => 'Leer: ein Token gilt, bis es entzogen wird.'],

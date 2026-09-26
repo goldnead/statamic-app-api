@@ -6299,11 +6299,19 @@
                     "cancelled_at_display": {
                         "type": "string"
                     },
+                    "ends_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "When the contract ends or ended, once nothing is charged any more: the end of the paid term, not the day it was cancelled. Null while it runs."
+                    },
                     "ended_label": {
                         "type": [
                             "string",
                             "null"
-                        ]
+                        ],
+                        "description": "„Gekündigt, läuft bis …\" while the paid term runs, „Beendet am <end of term>\" after it."
                     },
                     "resumes_at": {
                         "type": [
@@ -6619,6 +6627,13 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "copied_to": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Further addresses a copy of the confirmation went to (a team's billing address)."
                     },
                     "subscription": {
                         "$ref": "#/components/schemas/BillingSubscription"

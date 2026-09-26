@@ -6,23 +6,21 @@ use Goldnead\AppApi\Exceptions\ApiException;
 use Goldnead\AppApi\Services\Billing;
 use Goldnead\AppApi\Support\Users;
 use Goldnead\StatamicPayments\Contracts\MandateGateway;
-use Goldnead\StatamicPayments\Facades\PaymentLog;
 use Goldnead\StatamicPayments\Models\Subscription;
 use Goldnead\StatamicPayments\Portal\Display;
-use Goldnead\StatamicPayments\Portal\Mail\CancellationConfirmed;
 use Goldnead\StatamicPayments\Support\Anrede;
 use Goldnead\StatamicPayments\Support\Brands;
+use Goldnead\StatamicPayments\Support\CancellationOutcome;
+use Goldnead\StatamicPayments\Support\Cancellations;
 use Goldnead\StatamicPayments\Support\LocalTime;
 use Goldnead\StatamicPayments\Support\Money;
 use Goldnead\StatamicPayments\Support\SubscriptionPauses;
-use Goldnead\StatamicPayments\Support\Subscriptions;
 use Goldnead\StatamicPayments\Support\SubscriptionSwitches;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Statamic\Auth\User;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +33,7 @@ use Throwable;
  *
  * Translation only. Who may see a row is {@see Billing}; every change goes
  * through the same classes of statamic-payments the portal calls
- * (`Subscriptions::cancel()`, `SubscriptionPauses`, `SubscriptionSwitches`,
+ * (`Cancellations::cancel()`, `SubscriptionPauses`, `SubscriptionSwitches`,
  * `MandateGateway`), so the provider is asked first and the same events
  * fire. No elevated session anywhere here: § 312k BGB wants the
  * cancellation without extra hurdles, and the portal itself asks for no
@@ -161,11 +159,13 @@ class BillingController extends Controller
     }
 
     /**
-     * „Jetzt kündigen": the portal's sequence (`CancellationController::
-     * cancel()`): the provider first through `Subscriptions::cancel()`, which
-     * writes nothing unless the provider confirmed and fires
-     * `SubscriptionCancelled`; then the confirmation in Textform to the
-     * person who cancelled, logged at the agreement's latest payment.
+     * „Jetzt kündigen": payments' own sequence (`Support\Cancellations`, the
+     * one the portal runs): the provider first, which writes nothing unless
+     * it confirmed and fires `SubscriptionCancelled`; then the confirmation
+     * in Textform to the person who cancelled, logged at the agreement's
+     * latest payment. A team's agreement: a copy to the team's billing
+     * address when there is one and it is another
+     * (`billing.cancellation_copy_to_team`).
      */
     public function cancel(Request $request, string $subscription): JsonResponse
     {
@@ -175,36 +175,30 @@ class BillingController extends Controller
         $this->cancelHereOr409($billing, $record);
         $this->confirmedOr422($request);
 
-        $user = Users::current($request);
-        $email = (string) $user->email();
+        $email = (string) Users::current($request)->email();
+        $copies = config('app-api.billing.cancellation_copy_to_team', true)
+            ? array_filter([$billing->teamBillingEmailOf($record)])
+            : [];
 
-        // Already over: the confirmation the buyer was going to see, no
-        // second mail. A row in a claim (pausing, switching) is not over.
-        if (! $record->isRunning() && ! $record->isClaimed()) {
-            return $this->cancelled($billing, $record, $email, $this->momentOf($record), Billing::paidUntil($record), true, null);
-        }
-
-        // Read before: `cancel()` clears `next_payment_at`.
-        $until = Billing::paidUntil($record);
-
-        if (! app(Subscriptions::class)->cancel($record)) {
-            if (($record->fresh() ?? $record)->isClaimed()) {
-                throw ApiException::make('cancel_busy', 409, null, [], Anrede::trans('statamic-payments::subscriptions.portal_cancel_busy'));
-            }
-
-            throw ApiException::make('cancel_failed', 503, null, [], Anrede::trans('statamic-payments::portal.cancel_failed'));
-        }
-
-        $record = $record->fresh() ?? $record;
-        $moment = $this->momentOf($record);
         // Under the agreement's brand: sender, wording and form of address of
         // the confirmation are that brand's, whatever this request resolved.
-        $sent = (bool) Brands::runFor((int) $record->brand_id, fn () => $this->confirmByMail($billing, $record, $email, $moment, $until));
+        $outcome = Brands::runFor(
+            (int) $record->brand_id,
+            fn () => app(Cancellations::class)->cancel($record, $email, array_values($copies)),
+        );
 
-        return $this->cancelled($billing, $record, $email, $moment, $until, false, $sent);
+        return match ($outcome->status) {
+            CancellationOutcome::BUSY => throw ApiException::make('cancel_busy', 409, null, [], Anrede::trans('statamic-payments::subscriptions.portal_cancel_busy')),
+            CancellationOutcome::FAILED => throw ApiException::make('cancel_failed', 503, null, [], Anrede::trans('statamic-payments::portal.cancel_failed')),
+            // Already over: the confirmation the buyer was going to see, no
+            // second mail.
+            CancellationOutcome::ALREADY_ENDED => $this->cancelled($billing, $outcome->subscription, $email, $outcome->moment ?? Carbon::now(), $outcome->until, true, null),
+            default => $this->cancelled($billing, $outcome->subscription, $email, $outcome->moment ?? Carbon::now(), $outcome->until, false, $outcome->confirmationSent, $outcome->copiedTo),
+        };
     }
 
-    protected function cancelled(Billing $billing, Subscription $record, string $email, Carbon $moment, ?Carbon $until, bool $already, ?bool $sent): JsonResponse
+    /** @param  list<string>  $copiedTo */
+    protected function cancelled(Billing $billing, Subscription $record, string $email, Carbon $moment, ?Carbon $until, bool $already, ?bool $sent, array $copiedTo = []): JsonResponse
     {
         return new JsonResponse([
             'cancelled' => true,
@@ -226,35 +220,11 @@ class BillingController extends Controller
                 false => Anrede::trans('statamic-payments::portal.cancelled_not_mailed', ['email' => $email]),
                 null => null,
             },
+            // Where a copy of the confirmation went as well (a team's billing
+            // address).
+            'copied_to' => $copiedTo,
             'subscription' => $billing->presentSubscription($record),
         ]);
-    }
-
-    protected function confirmByMail(Billing $billing, Subscription $record, string $email, Carbon $moment, ?Carbon $until): bool
-    {
-        try {
-            $mailable = new CancellationConfirmed($record, $moment, $billing->nameOf($record->product), $until);
-
-            Mail::to($email)->send($mailable);
-
-            if ($payment = $record->payments()->orderByDesc('paid_at')->orderByDesc('id')->first()) {
-                PaymentLog::mail($payment, 'cancellation_confirmation', $email, $mailable->envelope()->subject, meta: ['subscription_id' => $record->getKey(), 'via' => 'app-api']);
-            }
-
-            return true;
-        } catch (Throwable $e) {
-            Log::error('app-api: an agreement was cancelled and the confirmation in Textform could not be sent.', [
-                'subscription_id' => $record->getKey(),
-                'exception' => $e->getMessage(),
-            ]);
-
-            return false;
-        }
-    }
-
-    protected function momentOf(Subscription $record): Carbon
-    {
-        return $record->cancelled_at ?? $record->ended_at ?? Carbon::now();
     }
 
     protected function cancelHereOr409(Billing $billing, Subscription $record): void

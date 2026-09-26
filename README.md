@@ -83,6 +83,7 @@ With a token instead: `Authorization: Bearer <plain_text_token>` (no CSRF cookie
 | `checkout.return_url` | `null` | Where the provider sends the buyer back (a path). |
 | `portal.require_verified_email` | `true` | Only a confirmed address gets a portal link. |
 | `billing.return_url` | `null` | Where the provider sends the buyer back after a new payment method (a path; the client may pass `return_url`). |
+| `billing.cancellation_copy_to_team` | `true` | A team's agreement cancelled in the app: the confirmation also goes to the team's billing address, when there is one and it is another. |
 | `export.link_minutes` | `10` | Lifetime of an export's download link. |
 | `tokens.abilities` / `tokens.expires_after_days` | `['*']` / `null` | What a token may ask for, how long it lives. |
 
@@ -231,9 +232,12 @@ user in place of the mailed link:
   `*_display` twin. Show the texts as they come.
 - **Cancelling (§ 312k BGB).** `GET …/cancel` gives what the confirmation page shows, including the
   button label ("Jetzt kündigen"); `POST …/cancel` with `confirmed: true` goes through
-  `Subscriptions::cancel()`, which asks the provider first and fires `SubscriptionCancelled`, then
-  mails the confirmation in Textform to the user (`mail_sent`, `mail_message`) and logs it at the
-  order. It takes effect at the end of the paid period. There is **no elevated session** in the
+  payments' `Support\Cancellations` (the portal's sequence), which asks the provider first and fires
+  `SubscriptionCancelled`, then mails the confirmation in Textform to the user (`mail_sent`,
+  `mail_message`) and logs it at the order. For a team's agreement a copy goes to the team's
+  billing address when it has one and it is another (`copied_to`; `billing.cancellation_copy_to_team`).
+  It takes effect at the end of the paid period: `ended_label` says „Gekündigt, läuft bis …" until
+  then and „Beendet am <end of term>" after, `ends_at` is that date. There is **no elevated session** in the
   way: the statute wants the cancellation without extra hurdles, and the portal itself asks for no
   more than the mailed link. Where a product keeps cancelling out of the portal, the answer is 409
   `cancel_elsewhere` with the statutory page without login; that page (`links.cancellation_url`)

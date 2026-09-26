@@ -35,12 +35,15 @@
         "goldnead/statamic-entitlements": "^1.5",
         "goldnead/statamic-invoices": "^2.5",
         "goldnead/statamic-offers": "^1.13",
-        "goldnead/statamic-payments": "^1.29",
+        "goldnead/statamic-payments": "^1.29.2",
         "goldnead/statamic-teams": "^0.2",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
         "orchestra/testbench": "^10.0 || ^11.0",
         "phpunit/phpunit": "^11.0 || ^12.0"
+    },
+    "conflict": {
+        "goldnead/statamic-payments": "<1.29.2"
     },
     "suggest": {
         "goldnead/statamic-accounts": "Account endpoints: address confirmation, change of address, deletion with grace period, personal data export.",

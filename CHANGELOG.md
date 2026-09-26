@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A cancelled subscription whose paid term still runs said `ended_label` „Beendet am <day of the
+  cancellation>" next to „Bezahlt bis <end of term>". It now says „Gekündigt, läuft bis <end of
+  term>" while the term runs and „Beendet am <end of term>" after it, the same sentence as the
+  portal (`Portal\Display::ending()`, statamic-payments 1.29.2). New field `ends_at`.
+
+### Changed
+
+- `POST billing/subscriptions/{subscription}/cancel` runs payments' own sequence,
+  `Support\Cancellations::cancel()`, instead of a copy of it. Same answers and mail; the log entry
+  no longer carries `via: app-api`. Requires statamic-payments ≥ 1.29.2.
+
+### Added
+
+- A team's agreement: the cancellation confirmation also goes, as a mail of its own, to the team's
+  billing address (statamic-teams `billing.email`) when there is one and it is not the address of
+  the person who cancelled. Response field `copied_to`. Setting `billing.cancellation_copy_to_team`
+  (default on, in the CP under Checkout).
+
 ## 0.2.0 — 2026-09-26
 
 ### Added
