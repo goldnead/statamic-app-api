@@ -8,6 +8,7 @@ use Goldnead\AppApi\Exceptions\ApiException;
 use Goldnead\AppApi\Support\Users;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
@@ -74,7 +75,16 @@ class Tokens
         /** @var PersonalAccessToken $token */
         $token = $new->accessToken;
 
-        TokenCreated::dispatch((string) $user->id(), $user->email(), (int) $token->getKey(), $name, $abilities, $expires?->toIso8601String());
+        // The token exists and its plain text is shown once. A listener that
+        // throws must not turn this into a 500 and lose it.
+        try {
+            TokenCreated::dispatch((string) $user->id(), $user->email(), (int) $token->getKey(), $name, $abilities, $expires?->toIso8601String());
+        } catch (Throwable $e) {
+            Log::error('statamic-app-api: a TokenCreated listener failed.', [
+                'token' => (int) $token->getKey(),
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ['token' => $token, 'plain' => $new->plainTextToken];
     }

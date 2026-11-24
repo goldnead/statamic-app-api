@@ -81,8 +81,9 @@ class ExportDownloads
 
         foreach (File::files($directory) as $file) {
             if ($file->getMTime() < $cutoff) {
-                File::delete($file->getPathname());
-                $removed++;
+                if (File::delete($file->getPathname())) {
+                    $removed++;
+                }
             }
         }
 
