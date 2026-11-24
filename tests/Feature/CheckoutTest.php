@@ -2,6 +2,8 @@
 
 namespace Goldnead\AppApi\Tests\Feature;
 
+use Composer\InstalledVersions;
+use Composer\Semver\VersionParser;
 use Goldnead\Accounts\Facades\Accounts;
 use Goldnead\AppApi\Tests\TestCase;
 use Goldnead\StatamicOffers\Models\Offer;
@@ -86,7 +88,9 @@ class CheckoutTest extends TestCase
         $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'b'])
             ->assertCreated()->assertJsonPath('reused', false);
 
-        $this->assertContains(Payment::count(), [1, 2]);
+        $guarded = InstalledVersions::satisfies(new VersionParser, 'goldnead/statamic-payments', '>=1.30');
+        $this->assertSame($guarded ? 1 : 2, Payment::count());
+        $this->assertCount($guarded ? 1 : 2, $this->gateway->created);
     }
 
     #[Test]
@@ -98,6 +102,7 @@ class CheckoutTest extends TestCase
         $this->buy(['product' => 'chortarif', 'confirmed' => true], ['Idempotency-Key' => 'b'])->assertCreated();
 
         $this->assertSame(2, Payment::count());
+        $this->assertCount(2, $this->gateway->created);
     }
 
     #[Test]
