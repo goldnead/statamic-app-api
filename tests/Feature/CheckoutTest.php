@@ -73,9 +73,29 @@ class CheckoutTest extends TestCase
     {
         $this->actingAs($this->makeUser('sina@example.com'));
 
+        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])
+            ->assertCreated()->assertJsonPath('reused', false);
+        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])
+            ->assertOk()->assertJsonPath('reused', true);
+
+        // Another key is another request for this API: it is not answered from
+        // the key's cache. Whether it also ends in a second payment row is the
+        // payments addon's call: from 1.30 on its own double-click guard hands
+        // the same open checkout of the same basket and buyer out for five
+        // minutes, before that every start made a new payment.
+        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'b'])
+            ->assertCreated()->assertJsonPath('reused', false);
+
+        $this->assertContains(Payment::count(), [1, 2]);
+    }
+
+    #[Test]
+    public function a_different_idempotency_key_and_a_different_basket_are_two_payments(): void
+    {
+        $this->actingAs($this->makeUser('sina@example.com'));
+
         $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])->assertCreated();
-        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'a'])->assertOk();
-        $this->buy(['product' => 'lifetime', 'confirmed' => true], ['Idempotency-Key' => 'b'])->assertCreated();
+        $this->buy(['product' => 'chortarif', 'confirmed' => true], ['Idempotency-Key' => 'b'])->assertCreated();
 
         $this->assertSame(2, Payment::count());
     }
