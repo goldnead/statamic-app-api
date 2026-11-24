@@ -70,11 +70,17 @@ class CheckoutStarter
             // and pay twice. The checkout is answered; only the protection
             // against a repeated click is lost, and that is logged.
             try {
-                Cache::put($key, [
+                $stored = Cache::put($key, [
                     'payment' => (int) $started['payment']->getKey(),
                     'checkout_url' => $started['checkout_url'],
                     'input' => $fingerprint,
                 ], $ttl);
+
+                if ($stored === false) {
+                    Log::error('statamic-app-api: the idempotency record of a started checkout was not stored.', [
+                        'payment' => $started['payment']->getKey(),
+                    ]);
+                }
             } catch (Throwable $e) {
                 Log::error('statamic-app-api: the idempotency record of a started checkout could not be stored.', [
                     'payment' => $started['payment']->getKey(),

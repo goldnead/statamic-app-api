@@ -42,6 +42,10 @@ class StilleFehlerTest extends TestCase
     #[Test]
     public function the_prune_count_only_includes_files_that_were_really_removed(): void
     {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('A read-only directory does not stop root.');
+        }
+
         $directory = storage_path(ExportDownloads::DIRECTORY);
         File::ensureDirectoryExists($directory);
         File::put($directory.'/alt', 'x');
