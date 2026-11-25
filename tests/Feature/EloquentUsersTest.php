@@ -102,6 +102,17 @@ class EloquentUsersTest extends TestCase
     }
 
     #[Test]
+    public function a_failing_listener_does_not_lose_the_token_just_created(): void
+    {
+        $this->actingAs($this->eloquentUser());
+        Event::listen(TokenCreated::class, fn () => throw new \RuntimeException('listener down'));
+
+        $response = $this->api('POST', 'tokens', ['name' => 'Notenpult'])->assertCreated();
+
+        $this->assertNotEmpty($response->json('plain_text_token'));
+    }
+
+    #[Test]
     public function a_token_is_created_used_and_revoked(): void
     {
         Event::fake([TokenCreated::class, TokenRevoked::class]);
