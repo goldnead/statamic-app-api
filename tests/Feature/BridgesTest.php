@@ -13,6 +13,7 @@ use Goldnead\StatamicAutomations\Facades\Automations;
 use Goldnead\WebhookManager\Events\TriggerDetected;
 use Goldnead\WebhookManager\Facades\WebhookManager;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 
 require_once __DIR__.'/../Fakes/automations.php';
@@ -109,5 +110,39 @@ class BridgesTest extends TestCase
 
         $this->assertArrayNotHasKey('plain_text_token', $event->payload()['token']);
         $this->assertArrayNotHasKey('token', array_diff_key($event->payload()['token'], array_flip(['id', 'name', 'abilities', 'expires_at'])));
+    }
+
+    #[Test]
+    public function a_failed_webhook_dispatch_is_logged_with_the_ids_of_the_event(): void
+    {
+        Log::spy();
+
+        Event::listen(TriggerDetected::class, function () {
+            throw new \RuntimeException('manager down');
+        });
+
+        TokenRevoked::dispatch('7', 'sina@example.com', 3, 'Notenpult', 'cp', '1');
+
+        Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context = []) {
+            return str_contains($message, 'webhook dispatch failed for [app-api.token.revoked]')
+                && ($context['user_id'] ?? null) === '7'
+                && ($context['token_id'] ?? null) === 3
+                && ! str_contains(json_encode($context), 'sina@example.com');
+        })->once();
+    }
+
+    #[Test]
+    public function a_missing_manager_binding_is_logged_when_the_manager_is_installed(): void
+    {
+        app()->forgetInstance('webhook-manager');
+        Log::spy();
+
+        $bridge = new WebhookManagerBridge;
+        $bridge->boot(app('events'));
+
+        $this->assertFalse($bridge->booted());
+        Log::shouldHaveReceived('warning')->withArgs(function (string $message) {
+            return str_contains($message, 'webhook-manager');
+        })->once();
     }
 }

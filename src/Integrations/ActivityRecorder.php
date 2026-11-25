@@ -48,6 +48,8 @@ class ActivityRecorder
         } catch (Throwable $e) {
             Log::warning('statamic-app-api: writing the activity failed.', [
                 'event' => $event::handle(),
+                'user_id' => $payload['user']['id'] ?? null,
+                'token_id' => $payload['token']['id'] ?? null,
                 'exception' => $e->getMessage(),
             ]);
         }

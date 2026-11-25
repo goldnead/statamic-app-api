@@ -31,8 +31,11 @@ class WebhookManagerBridge
             return;
         }
 
-        // The binding appears only once the manager's provider booted.
+        // The binding appears only once the manager's provider booted. Installed
+        // but unbound after the app booted is not a normal state: say so.
         if (! app()->bound('webhook-manager')) {
+            Log::warning('statamic-app-api: webhook-manager is installed but its binding is missing; the API events are not sent to it.');
+
             return;
         }
 
@@ -71,7 +74,13 @@ class WebhookManagerBridge
 
             event(new TriggerDetected($trigger->build($event)));
         } catch (Throwable $e) {
-            Log::warning('statamic-app-api: webhook dispatch failed for ['.$handle.']: '.$e->getMessage());
+            $payload = $event->payload();
+
+            Log::warning('statamic-app-api: webhook dispatch failed for ['.$handle.']: '.$e->getMessage(), [
+                'event' => $handle,
+                'user_id' => $payload['user']['id'] ?? null,
+                'token_id' => $payload['token']['id'] ?? null,
+            ]);
         }
     }
 }
