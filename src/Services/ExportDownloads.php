@@ -5,6 +5,7 @@ namespace Goldnead\AppApi\Services;
 use Goldnead\AppApi\Exceptions\ApiException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Statamic\Auth\User;
@@ -81,8 +82,11 @@ class ExportDownloads
 
         foreach (File::files($directory) as $file) {
             if ($file->getMTime() < $cutoff) {
-                File::delete($file->getPathname());
-                $removed++;
+                if (File::delete($file->getPathname())) {
+                    $removed++;
+                } else {
+                    Log::warning('statamic-app-api: an expired export could not be removed.', ['file' => $file->getFilename()]);
+                }
             }
         }
 

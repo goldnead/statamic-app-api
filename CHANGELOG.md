@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Checkout: a cache failure while storing the idempotency record, after the payment was already created at the provider, no longer answers 500 (which invited a second payment). The checkout URL is answered and the failure is logged.
+- Tokens: a failing `TokenCreated` listener no longer turns a created token into a 500 and loses its one-time plain text. The failure is logged.
+- `app-api:prune-exports` counts only files that were really deleted.
+
 ## 0.2.2 — 2026-10-17
 
 ### Changed
