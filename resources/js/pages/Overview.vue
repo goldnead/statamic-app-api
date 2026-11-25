@@ -132,7 +132,7 @@ function revoke() {
                             <TableColumns>
                                 <TableColumn>{{ __('Area') }}</TableColumn>
                                 <TableColumn>{{ __('Addon') }}</TableColumn>
-                                <TableColumn>{{ __('State') }}</TableColumn>
+                                <TableColumn>{{ __('Status') }}</TableColumn>
                                 <TableColumn class="text-end">{{ __('Endpoints') }}</TableColumn>
                             </TableColumns>
                             <TableRows>
