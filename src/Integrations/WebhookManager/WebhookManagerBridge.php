@@ -74,7 +74,9 @@ class WebhookManagerBridge
 
             event(new TriggerDetected($trigger->build($event)));
         } catch (Throwable $e) {
-            $payload = $event->payload();
+            // The payload only decorates the log line: reading it must not throw
+            // out of the listener and replace the original failure.
+            $payload = rescue(fn () => $event->payload(), [], false);
 
             Log::warning('statamic-app-api: webhook dispatch failed for ['.$handle.']: '.$e->getMessage(), [
                 'event' => $handle,
